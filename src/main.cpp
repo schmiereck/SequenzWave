@@ -17,7 +17,7 @@ void setup() {
     if (!startupError) {
         storage::begin(loaded); // A corrupt/missing record loads safe defaults.
         hardware::setBrightness(loaded.brightness);
-        if (!audio::begin(loaded.audioMode)) Serial.println("Speaker init failed; MIDI/UI continue");
+        if (!audio::begin(loaded.audioMode, loaded.speakerVolume)) Serial.println("Speaker init failed; MIDI/UI continue");
         if (!app::begin(loaded.pattern, loaded.bpm, loaded.channel)) startupError = "Sequencer/UART init failed";
     }
     if (!startupError) ui::create(hardware::touchAvailable(), loaded);

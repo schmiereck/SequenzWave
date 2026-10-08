@@ -19,6 +19,7 @@ lv_obj_t* gateText;
 lv_obj_t* velocityText;
 lv_obj_t* channelText;
 lv_obj_t* lightText;
+lv_obj_t* volumeText;
 lv_obj_t* audioText;
 storage::Data saved;
 sequencer::Pattern& pattern = saved.pattern;
@@ -142,6 +143,16 @@ void closeSettings(lv_event_t*) {
     storage::saveNow();
     lv_obj_add_flag(settings, LV_OBJ_FLAG_HIDDEN);
 }
+void volumeChanged(lv_event_t* event) {
+    const uint8_t volume = static_cast<uint8_t>(lv_slider_get_value(lv_event_get_target(event)));
+    if (!audio::setVolume(volume)) {
+        lv_label_set_text(footer, "Speaker volume error");
+        return;
+    }
+    saved.speakerVolume = volume;
+    lv_label_set_text_fmt(volumeText, "Volume %u%%", volume);
+    storage::schedule(saved);
+}
 void audioChanged(lv_event_t*) {
     const auto next = static_cast<audio::Mode>((static_cast<uint8_t>(saved.audioMode) + 1) % 3);
     if (!audio::setMode(next)) {
@@ -231,22 +242,30 @@ void create(bool touchAvailable, const storage::Data& loaded) {
     gateText = label(settings, "", 16, 76);
     button(settings, "-", 220, 60, 80, edit, -2000);
     button(settings, "+", 320, 60, 80, edit, 2000);
-    velocityText = label(settings, "", 16, 134);
-    button(settings, "-", 220, 118, 80, edit, -3000);
-    button(settings, "+", 320, 118, 80, edit, 3000);
-    channelText = label(settings, "", 16, 190);
-    button(settings, "-", 220, 174, 80, midiChannelChanged, -1);
-    button(settings, "+", 320, 174, 80, midiChannelChanged, 1);
-    lightText = label(settings, "", 16, 248);
+    velocityText = label(settings, "", 16, 128);
+    button(settings, "-", 220, 112, 80, edit, -3000);
+    button(settings, "+", 320, 112, 80, edit, 3000);
+    channelText = label(settings, "", 16, 180);
+    button(settings, "-", 220, 164, 80, midiChannelChanged, -1);
+    button(settings, "+", 320, 164, 80, midiChannelChanged, 1);
+    lightText = label(settings, "", 16, 232);
     lv_label_set_text_fmt(lightText, "Brightness %u%%", hardware::brightness());
     auto* slider = lv_slider_create(settings);
-    lv_obj_set_pos(slider, 220, 248);
+    lv_obj_set_pos(slider, 220, 220);
     lv_obj_set_size(slider, 230, 24);
     lv_obj_set_ext_click_area(slider, 12);
     lv_slider_set_range(slider, 2, 100);
     lv_slider_set_value(slider, hardware::brightness(), LV_ANIM_OFF);
     lv_obj_add_event_cb(slider, lightChanged, LV_EVENT_VALUE_CHANGED, nullptr);
-    label(settings, "Auto-save 2 s | Back saves", 16, 288);
+    volumeText = label(settings, "", 16, 284);
+    lv_label_set_text_fmt(volumeText, "Volume %u%%", saved.speakerVolume);
+    auto* volumeSlider = lv_slider_create(settings);
+    lv_obj_set_pos(volumeSlider, 220, 272);
+    lv_obj_set_size(volumeSlider, 230, 24);
+    lv_obj_set_ext_click_area(volumeSlider, 10);
+    lv_slider_set_range(volumeSlider, 0, 100);
+    lv_slider_set_value(volumeSlider, saved.speakerVolume, LV_ANIM_OFF);
+    lv_obj_add_event_cb(volumeSlider, volumeChanged, LV_EVENT_VALUE_CHANGED, nullptr);
     lv_obj_add_flag(settings, LV_OBJ_FLAG_HIDDEN);
     showEditor();
 }

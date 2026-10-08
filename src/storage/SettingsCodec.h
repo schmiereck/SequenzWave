@@ -6,13 +6,15 @@
 #include <cstdint>
 
 namespace storage {
-constexpr size_t kRecordSize = 80;
+constexpr size_t kLegacyRecordSize = 80;
+constexpr size_t kRecordSize = 84;
 struct Data {
     sequencer::Pattern pattern = sequencer::initialPattern();
     uint16_t bpm = 120;
     uint8_t brightness = 10;
     uint8_t channel = 1;
     audio::Mode audioMode = audio::Mode::Off;
+    uint8_t speakerVolume = 80;  // UI percent; maps to codec 0..0 dB.
 };
 using Record = std::array<uint8_t, kRecordSize>;
 Record encode(const Data& data, uint32_t generation);

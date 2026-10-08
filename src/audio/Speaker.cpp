@@ -14,8 +14,8 @@ namespace {
 constexpr uint32_t kSampleRate = 48000;
 constexpr size_t kFrames = 256;
 // ES8311 DAC register 0x32 is in 0.5-dB steps; 0xBF is 0 dB.
-// The vendor's percentage helper maps 60 to 0x98 (-19.5 dB).
-constexpr int kCodecVolume = 60;
+// Vendor helper value 75 reaches approximately 0 dB. Never request boost.
+int codecVolume(uint8_t percent) { return (percent * 75 + 50) / 100; }
 enum class Kind : uint8_t { Mode, On, Off, Beat };
 struct Message { Kind kind; uint8_t value; uint8_t velocity; };
 StaticQueue_t queueControl;
@@ -29,6 +29,7 @@ volatile uint32_t drops = 0;
 volatile bool initialized = false;
 audio::Mode currentMode = audio::Mode::Off;
 std::atomic<uint8_t> requestedMode{0};
+es8311_handle_t codec = nullptr;
 uint8_t currentNote = 0;
 uint32_t phase = 0, phaseStep = 0;
 uint32_t clickFrames = 0;
@@ -92,7 +93,8 @@ void run(void*) {
                 const int32_t wave = sineTable[phase >> 24] +
                     sineTable[(phase * 2U) >> 24] / 2 +
                     sineTable[(phase * 3U) >> 24] / 4;
-                sample = wave * noteVelocity / 127;
+                // Full velocity stays below 16-bit clipping even with this 2x boost.
+                sample = wave * noteVelocity * 2 / 127;
                 phase += phaseStep;
             } else if (currentMode == audio::Mode::Metronome && clickFrames) {
                 sample = sineTable[phase >> 24] * static_cast<int32_t>(clickFrames) /
@@ -110,7 +112,8 @@ void run(void*) {
 }  // namespace
 
 namespace audio {
-bool begin(Mode initial) {
+bool begin(Mode initial, uint8_t volume) {
+    if (volume > 100) return false;
     for (unsigned i = 0; i < 256; ++i) {
         sineTable[i] = static_cast<int16_t>(9000 * std::sin(2.0 * 3.141592653589793 * i / 256));
     }
@@ -132,13 +135,13 @@ bool begin(Mode initial) {
         board::kAudioDataOut, I2S_PIN_NO_CHANGE
     };
     if (i2s_set_pin(I2S_NUM_0, &pins) != ESP_OK) return false;
-    es8311_handle_t codec = es8311_create(I2C_NUM_0, ES8311_ADDRESS_0);
+    codec = es8311_create(I2C_NUM_0, ES8311_ADDRESS_0);
     if (!codec) return false;
     const es8311_clock_config_t clock = {
         false, false, true, kSampleRate * 256, kSampleRate
     };
     if (es8311_init(codec, &clock, ES8311_RESOLUTION_16, ES8311_RESOLUTION_16) != ESP_OK ||
-        es8311_voice_volume_set(codec, kCodecVolume, nullptr) != ESP_OK ||
+        es8311_voice_volume_set(codec, codecVolume(volume), nullptr) != ESP_OK ||
         es8311_microphone_config(codec, false) != ESP_OK) return false;
     if (!hardware::setSpeakerAmplifier(initial != Mode::Off)) return false;
     currentMode = initial;
@@ -157,6 +160,10 @@ bool setMode(Mode mode) {
     if (!hardware::setSpeakerAmplifier(mode != Mode::Off)) return false;
     requestedMode.store(static_cast<uint8_t>(mode), std::memory_order_relaxed);
     return true;
+}
+bool setVolume(uint8_t volume) {
+    return initialized && volume <= 100 &&
+        es8311_voice_volume_set(codec, codecVolume(volume), nullptr) == ESP_OK;
 }
 void noteOn(uint8_t note, uint8_t velocity) {
     if (requestedMode.load(std::memory_order_relaxed) == static_cast<uint8_t>(Mode::Notes))

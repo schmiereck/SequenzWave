@@ -16,8 +16,9 @@ Data waiting;
 
 Record readSlot(const char* key) {
     Record record{};
-    if (preferences.getBytesLength(key) == kRecordSize) {
-        preferences.getBytes(key, record.data(), record.size());
+    const size_t bytes = preferences.getBytesLength(key);
+    if (bytes == kRecordSize || bytes == kLegacyRecordSize) {
+        preferences.getBytes(key, record.data(), bytes);
     }
     return record;
 }

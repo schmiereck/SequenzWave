@@ -2,12 +2,29 @@
 #include <cassert>
 #include <cstdio>
 
+static storage::Record legacyRecord(storage::Record record, uint8_t version) {
+    record[4] = version;
+    if (version == 1) record[10] &= 1;
+    else if (version == 2) record[10] &= static_cast<uint8_t>(~0x06);
+    uint32_t crc = 0xffffffffU;
+    for (size_t i = 0; i < 76; ++i) {
+        crc ^= record[i];
+        for (unsigned bit = 0; bit < 8; ++bit)
+            crc = (crc >> 1) ^ (0xedb88320U & (0U - (crc & 1U)));
+    }
+    crc = ~crc;
+    for (unsigned i = 0; i < 4; ++i) record[76 + i] = crc >> (8 * i);
+    for (unsigned i = 80; i < storage::kRecordSize; ++i) record[i] = 0;
+    return record;
+}
+
 int main() {
     storage::Data original;
     original.bpm = 137;
     original.brightness = 2;
     original.channel = 16;
     original.audioMode = audio::Mode::Notes;
+    original.speakerVolume = 92;
     original.pattern.steps[0].note = 127;
     original.pattern.steps[0].velocity = 1;
     original.pattern.steps[0].gate = 5;
@@ -19,7 +36,7 @@ int main() {
     storage::Data restored;
     uint32_t generation = 0;
     assert(storage::decode(old, restored, generation));
-    assert(generation == 0xffffffffU && restored.bpm == 137 && restored.brightness == 2 && restored.channel == 16 && restored.audioMode == audio::Mode::Notes);
+    assert(generation == 0xffffffffU && restored.bpm == 137 && restored.brightness == 2 && restored.channel == 16 && restored.audioMode == audio::Mode::Notes && restored.speakerVolume == 92);
     assert(restored.pattern.steps[0].note == 127 && !restored.pattern.steps[0].enabled);
     assert(restored.pattern.steps[15].note == 0 && restored.pattern.steps[15].gate == 100);
 
@@ -41,36 +58,22 @@ int main() {
     invalid = original;
     invalid.audioMode = static_cast<audio::Mode>(3);
     assert(!storage::decode(storage::encode(invalid, 2), restored, generation));
+    invalid = original;
+    invalid.speakerVolume = 101;
+    assert(!storage::decode(storage::encode(invalid, 2), restored, generation));
 
     // Existing V1 NVS slots survive the firmware update and default to channel 1.
-    auto legacy = old;
-    legacy[4] = 1;
-    legacy[10] &= 1;
-    uint32_t crc = 0xffffffffU;
-    for (size_t i = 0; i < storage::kRecordSize - 4; ++i) {
-        crc ^= legacy[i];
-        for (unsigned bit = 0; bit < 8; ++bit)
-            crc = (crc >> 1) ^ (0xedb88320U & (0U - (crc & 1U)));
-    }
-    crc = ~crc;
-    for (unsigned i = 0; i < 4; ++i) legacy[76 + i] = crc >> (8 * i);
+    const auto legacy = legacyRecord(old, 1);
     assert(storage::decode(legacy, restored, generation) && restored.channel == 1);
-    assert(restored.audioMode == audio::Mode::Off);
+    assert(restored.audioMode == audio::Mode::Off && restored.speakerVolume == 80);
 
     // V2 stored MIDI channel but had no speaker setting.
-    auto v2 = old;
-    v2[4] = 2;
-    v2[10] &= static_cast<uint8_t>(~0x06);
-    crc = 0xffffffffU;
-    for (size_t i = 0; i < storage::kRecordSize - 4; ++i) {
-        crc ^= v2[i];
-        for (unsigned bit = 0; bit < 8; ++bit)
-            crc = (crc >> 1) ^ (0xedb88320U & (0U - (crc & 1U)));
-    }
-    crc = ~crc;
-    for (unsigned i = 0; i < 4; ++i) v2[76 + i] = crc >> (8 * i);
+    const auto v2 = legacyRecord(old, 2);
     assert(storage::decode(v2, restored, generation));
-    assert(restored.channel == 16 && restored.audioMode == audio::Mode::Off);
+    assert(restored.channel == 16 && restored.audioMode == audio::Mode::Off && restored.speakerVolume == 80);
+    const auto v3 = legacyRecord(old, 3);
+    assert(storage::decode(v3, restored, generation));
+    assert(restored.channel == 16 && restored.audioMode == audio::Mode::Notes && restored.speakerVolume == 80);
 
     auto recent = original;
     recent.bpm = 140;
@@ -81,6 +84,8 @@ int main() {
     assert(storage::newest(old, corrupt, restored, generation, selectedA));
     assert(selectedA && restored.bpm == 137);
     storage::Record blank{};
+    assert(storage::newest(v3, blank, restored, generation, selectedA));
+    assert(selectedA && restored.audioMode == audio::Mode::Notes && restored.speakerVolume == 80);
     assert(!storage::newest(blank, corrupt, restored, generation, selectedA));
     std::puts("PASS: versioned record, CRC, semantic validation, slot recovery and generation wrap");
 }

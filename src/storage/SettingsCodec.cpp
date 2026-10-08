@@ -2,9 +2,9 @@
 
 namespace storage {
 namespace {
-uint32_t checksum(const Record& record) {
+uint32_t checksum(const Record& record, size_t dataSize) {
     uint32_t crc = 0xffffffffU;
-    for (size_t i = 0; i < kRecordSize - 4; ++i) {
+    for (size_t i = 0; i < dataSize; ++i) {
         crc ^= record[i];
         for (unsigned bit = 0; bit < 8; ++bit) {
             crc = (crc >> 1) ^ (0xedb88320U & (0U - (crc & 1U)));
@@ -25,7 +25,7 @@ uint32_t read32(const Record& record, size_t index) {
 Record encode(const Data& data, uint32_t generation) {
     Record record{};
     record[0] = 'S'; record[1] = 'W'; record[2] = 'V'; record[3] = '2';
-    record[4] = 3;  // V3 also packs audio mode into bits 1-2 of byte 10.
+    record[4] = 4;  // V4 adds speaker volume after the sixteen steps.
     write32(record, 5, generation);
     record[9] = static_cast<uint8_t>(data.bpm);
     const bool validChannel = data.channel >= 1 && data.channel <= 16;
@@ -42,25 +42,30 @@ Record encode(const Data& data, uint32_t generation) {
         record[pos + 2] = step.gate;
         record[pos + 3] = step.enabled ? 1 : 0;
     }
-    write32(record, 76, checksum(record));
+    record[76] = data.speakerVolume;
+    write32(record, 80, checksum(record, 80));
     return record;
 }
 
 bool decode(const Record& record, Data& data, uint32_t& generation) {
     if (record[0] != 'S' || record[1] != 'W' || record[2] != 'V' ||
-        record[3] != '2' || (record[4] != 1 && record[4] != 2 && record[4] != 3) ||
-        read32(record, 76) != checksum(record)) return false;
+        record[3] != '2' || record[4] < 1 || record[4] > 4) return false;
+    const bool current = record[4] == 4;
+    if (read32(record, current ? 80 : 76) != checksum(record, current ? 80 : 76)) return false;
     Data candidate;
-    if ((record[4] == 3 && ((record[10] & 0x08) || ((record[10] >> 1) & 3) > 2)) ||
+    if ((record[4] >= 3 && ((record[10] & 0x08) || ((record[10] >> 1) & 3) > 2)) ||
         (record[4] == 2 && (record[10] & 0x0e)) ||
         (record[4] == 1 && record[10] > 1)) return false;
     candidate.bpm = uint16_t(record[9]) | (uint16_t(record[10] & 1) << 8);
     candidate.brightness = record[11];
     candidate.channel = record[4] >= 2 ? (record[10] >> 4) + 1 : 1;
-    candidate.audioMode = record[4] == 3 ?
+    candidate.audioMode = record[4] >= 3 ?
         static_cast<audio::Mode>((record[10] >> 1) & 3) : audio::Mode::Off;
+    candidate.speakerVolume = current ? record[76] : 80;
     if (candidate.bpm < 30 || candidate.bpm > 300 ||
-        candidate.brightness < 2 || candidate.brightness > 100) return false;
+        candidate.brightness < 2 || candidate.brightness > 100 ||
+        candidate.speakerVolume > 100 ||
+        (current && (record[77] || record[78] || record[79]))) return false;
     for (unsigned i = 0; i < sequencer::kStepCount; ++i) {
         const size_t pos = 12 + 4 * i;
         auto& step = candidate.pattern.steps[i];
