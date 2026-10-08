@@ -1,6 +1,7 @@
 #include "TouchUI.h"
 #include "app/SequencerRuntime.h"
 #include "hardware/Hardware.h"
+#include "storage/SettingsStore.h"
 #include <lvgl.h>
 #include <cstdio>
 
@@ -16,11 +17,13 @@ lv_obj_t* settings;
 lv_obj_t* gateText;
 lv_obj_t* velocityText;
 lv_obj_t* lightText;
-sequencer::Pattern pattern = sequencer::initialPattern();
+storage::Data saved;
+sequencer::Pattern& pattern = saved.pattern;
 unsigned selected = 0;
-uint16_t bpm = 120;
+uint16_t& bpm = saved.bpm;
 int8_t shownStep = -2;
 bool shownPlaying = false;
+storage::SaveStatus shownSaveStatus = storage::SaveStatus::Error;
 uint32_t refreshedAt = 0;
 
 lv_obj_t* label(lv_obj_t* parent, const char* text, int x, int y) {
@@ -66,7 +69,7 @@ void showEditor() {
 
 bool submit(app::Command command) {
     const bool accepted = app::send(command);
-    lv_label_set_text(footer, accepted ? "Pattern 01 | Mock MIDI | not saved" : "Busy - please repeat the edit");
+    if (!accepted) lv_label_set_text(footer, "Busy - please repeat the edit");
     return accepted;
 }
 
@@ -91,6 +94,7 @@ void tempo(lv_event_t* event) {
     if (submit(command)) {
         bpm = command.value;
         lv_label_set_text_fmt(bpmText, "%u BPM", bpm);
+        storage::schedule(saved);
     }
 }
 
@@ -118,15 +122,24 @@ void edit(lv_event_t* event) {
     if (submit(command)) {
         pattern.steps[selected] = next;
         showEditor();
+        storage::schedule(saved);
     }
 }
 
 void lightChanged(lv_event_t* event) {
     hardware::setBrightness(static_cast<uint8_t>(lv_slider_get_value(lv_event_get_target(event))));
+    saved.brightness = hardware::brightness();
+    storage::schedule(saved);
     lv_label_set_text_fmt(lightText, "Brightness %u%%", hardware::brightness());
 }
 void closeSettings(lv_event_t*) {
+    storage::schedule(saved);
+    storage::saveNow();
     lv_obj_add_flag(settings, LV_OBJ_FLAG_HIDDEN);
+}
+void saveSettings(lv_event_t*) {
+    storage::schedule(saved);
+    storage::saveNow();
 }
 void openSettings(lv_event_t*) {
     showEditor();
@@ -135,21 +148,24 @@ void openSettings(lv_event_t*) {
 }  // namespace
 
 namespace ui {
-void create(bool touchAvailable) {
+void create(bool touchAvailable, const storage::Data& loaded) {
+    saved = loaded;
     auto* screen = lv_scr_act();
     lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_bg_color(screen, lv_color_hex(0x151c28), 0);
     lv_obj_set_style_text_color(screen, lv_color_hex(0xf1f5fa), 0);
     label(screen, "MIDI Sequencer", 10, 5);
-    bpmText = label(screen, "120 BPM", 178, 30);
+    bpmText = label(screen, "", 178, 30);
+    lv_label_set_text_fmt(bpmText, "%u BPM", bpm);
     button(screen, "-", 120, 20, 44, tempo, -1);
     button(screen, "+", 258, 20, 44, tempo, 1);
     auto* transport = button(screen, "Play", 368, 12, 102, play);
     playText = lv_obj_get_child(transport, 0);
 
     for (unsigned i = 0; i < 16; ++i) {
-        steps[i] = button(screen, "", 10 + (i % 8) * 58, 76 + (i / 8) * 54,
-                          52, selectStep, i);
+        const int groupGap = (i % 8) >= 4 ? 10 : 0;
+        steps[i] = button(screen, "", 10 + (i % 8) * 58 + groupGap,
+                          76 + (i / 8) * 54, 50, selectStep, i);
         lv_obj_set_style_bg_color(steps[i], lv_color_hex(0x344158), 0);
         lv_obj_set_style_border_color(steps[i], lv_color_hex(0x72eddf), 0);
         stepText[i] = lv_obj_get_child(steps[i], 0);
@@ -162,7 +178,8 @@ void create(bool touchAvailable) {
     auto* rest = button(screen, "Rest", 378, 212, 92, edit, 1000);
     restText = lv_obj_get_child(rest, 0);
     button(screen, "Settings", 10, 266, 100, openSettings);
-    footer = label(screen, touchAvailable ? "Pattern 01 | Mock MIDI | not saved" : "ERROR: Touch not detected", 120, 280);
+    button(screen, "Save", 118, 266, 72, saveSettings);
+    footer = label(screen, touchAvailable ? "Pattern 01 | Mock MIDI" : "ERROR: Touch not detected", 202, 280);
 
     // Modal settings page: generous finger targets; transport continues underneath.
     settings = lv_obj_create(screen);
@@ -188,10 +205,10 @@ void create(bool touchAvailable) {
     lv_obj_set_pos(slider, 30, 235);
     lv_obj_set_size(slider, 420, 24);
     lv_obj_set_ext_click_area(slider, 12);
-    lv_slider_set_range(slider, 10, 100);
+    lv_slider_set_range(slider, 2, 100);
     lv_slider_set_value(slider, hardware::brightness(), LV_ANIM_OFF);
     lv_obj_add_event_cb(slider, lightChanged, LV_EVENT_VALUE_CHANGED, nullptr);
-    label(settings, "Settings reset on restart | MIDI channel 1", 16, 288);
+    label(settings, "Auto-save: 2 s idle | Back saves now", 16, 288);
     lv_obj_add_flag(settings, LV_OBJ_FLAG_HIDDEN);
     showEditor();
 }
@@ -200,6 +217,15 @@ void refresh() {
     if (lv_tick_elaps(refreshedAt) < 30) return;
     refreshedAt = lv_tick_get();
     const auto state = app::snapshot();
+    const auto save = storage::status();
+    if (save != shownSaveStatus) {
+        shownSaveStatus = save;
+        const char* message = "Pattern 01 | Mock MIDI | Defaults";
+        if (save == storage::SaveStatus::Pending) message = "Pattern 01 | Mock MIDI | Saving...";
+        else if (save == storage::SaveStatus::Saved) message = "Pattern 01 | Mock MIDI | Saved";
+        else if (save == storage::SaveStatus::Error) message = "SAVE ERROR | Check serial log";
+        lv_label_set_text(footer, message);
+    }
     if (state.transport.playing != shownPlaying) {
         shownPlaying = state.transport.playing;
         lv_label_set_text(playText, shownPlaying ? "Stop" : "Play");

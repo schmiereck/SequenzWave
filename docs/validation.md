@@ -2,6 +2,14 @@
 
 Datum: 2026-10-08. **Meilenstein 1: Benutzer meldet stabilen Standalone-Betrieb und gibt M2 frei. Meilenstein 2: Build und Mock-Lauf am Board bestätigt; neue Touch-Bedienung noch abzunehmen.**
 
+## Nachtrag: Vierergruppen, dunklere Anzeige und NVS
+
+Der Benutzer bestätigt alle Funktionen der ersten M2-Firmware, einschließlich Lauflicht. Bei 10 % Helligkeit wird das Gerät nach seiner Beobachtung deutlich kühler und bleibt gut bedienbar. Die neue Version ergänzt je 10 Pixel Abstand zwischen den Step-Gruppen 1–4/5–8 und 9–12/13–16 sowie einen Helligkeitsbereich von 2–100 %. Ohne gespeicherten Wert startet die Anzeige bei 10 %.
+
+Auf ausdrücklichen Benutzerwunsch werden Pattern-Steps (Note, Rest, Velocity, Gate), BPM und Helligkeit nun per NVS gespeichert. Zwei wechselnde 80-Byte-Slots mit Versionskennung und CRC32 erlauben Rückfall auf den letzten intakten Stand. Speicherung erfolgt nach zwei Sekunden ohne Änderung oder sofort über Save/Back. Play-Status und aktuell ausgewählter Bearbeitungs-Step werden nicht gespeichert.
+
+Der Host-Test des Speicherformats prüft CRC-Fehler in jedem Byte, ungültige Werte, Slot-Fallback und Zählerüberlauf: bestanden. Firmware-Build: SUCCESS (RAM 111.180 Bytes, App-Flash 520.625 Bytes). PlatformIO-Cppcheck: PASSED, dieselben elf MEDIUM-Warnungen in Bibliotheken und keine HIGH-Befunde. Host-Tests für Engine, Touch und Konfiguration erneut bestanden. Upload auf COM3: SUCCESS mit Hashprüfung. Serieller Starttest: `UI alive | touch=ready | PSRAM_heap=8386295 | heap=273744 | nvs=defaults | late_us=0 | skipped=0 | dropped=0`. `nvs=defaults` ist beim ersten Start ohne gespeicherten Datensatz erwartet. Ein echter Save/Reset-Vergleich auf dem Board wurde beim Benutzer angefragt und ist noch nicht bestätigt.
+
 ## Meilenstein 2 und Helligkeit
 
 Der Benutzer meldet zehn Minuten stabilen Betrieb am Netzteil und hat das Board wieder am PC angeschlossen. Erwärmung wurde subjektiv beobachtet; keine Temperaturmessung. Helligkeitsregelung ergänzt (GPIO6, 20-kHz-LEDC-PWM, 10–100 %, Standard 40 %). UI-Loop gibt jetzt etwa 5 ms an Idle ab. Ob das Gerät dadurch spürbar kühler wird, ist noch nicht bestätigt.

@@ -2,22 +2,29 @@
 #include "hardware/Hardware.h"
 #include "ui/TouchUI.h"
 #include "app/SequencerRuntime.h"
+#include "storage/SettingsStore.h"
 
 namespace {
 const char* startupError = nullptr;
 uint32_t lastReport = 0;
+storage::Data loaded;
 }
 
 void setup() {
     Serial.begin(115200);  // Native USB CDC; never wait for a connected PC.
     startupError = hardware::begin();
-    if (!startupError && !app::begin()) startupError = "Sequencer task init failed";
-    if (!startupError) ui::create(hardware::touchAvailable());
+    if (!startupError) {
+        storage::begin(loaded); // A corrupt/missing record loads safe defaults.
+        hardware::setBrightness(loaded.brightness);
+        if (!app::begin(loaded.pattern, loaded.bpm)) startupError = "Sequencer task init failed";
+    }
+    if (!startupError) ui::create(hardware::touchAvailable(), loaded);
 }
 
 void loop() {
     hardware::service();
     if (!startupError) {
+        storage::service(millis());
         ui::refresh();
         app::serviceDebug();
     }
@@ -27,9 +34,10 @@ void loop() {
         if (startupError) Serial.printf("INIT ERROR: %s\n", startupError);
         else if (Serial && Serial.availableForWrite() >= 120) {
             const auto state = app::snapshot();
-            Serial.printf("UI alive | touch=%s | PSRAM_heap=%u | heap=%u | late_us=%llu | skipped=%u | dropped=%u\n",
+            Serial.printf("UI alive | touch=%s | PSRAM_heap=%u | heap=%u | nvs=%s | late_us=%llu | skipped=%u | dropped=%u\n",
             hardware::touchAvailable() ? "ready" : "MISSING",
             ESP.getPsramSize(), ESP.getFreeHeap(),
+            storage::loadedFromNvs() ? "loaded" : "defaults",
             static_cast<unsigned long long>(state.transport.maxLateUs),
             state.transport.skippedSteps, state.droppedLogs);
         }

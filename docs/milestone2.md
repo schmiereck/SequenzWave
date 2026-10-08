@@ -22,7 +22,7 @@ MockMidiOutput schreibt Ereignisse mit tatsächlichem Aufrufzeitpunkt in die Deb
 
 ## Backlight
 
-Bestehender GPIO6, keine Umverdrahtung. LEDC-Kanal 0, Timer 0, 20 kHz und 8 Bit. Kanal/Timer sind für Backlight reserviert; die unbenutzte Kamera darf sie später nicht ungeprüft übernehmen. Der Schieberegler begrenzt auf 10–100 %, damit die Oberfläche erreichbar bleibt; Standard 40 %. Prozentwerte sind lineares Tastverhältnis, keine Gamma-Korrektur. Keine Speicherung vor M4.
+Bestehender GPIO6, keine Umverdrahtung. LEDC-Kanal 0, Timer 0, 20 kHz und 8 Bit. Kanal/Timer sind für Backlight reserviert; die unbenutzte Kamera darf sie später nicht ungeprüft übernehmen. Der Schieberegler reicht von 2–100 %, Standard ohne gespeicherten Wert 10 %. Prozentwerte sind lineares Tastverhältnis, keine Gamma-Korrektur. Der Benutzer meldet bei 10 % deutlich geringere Wärme; Temperatur und Stromaufnahme wurden nicht gemessen.
 
 Die API wurde gegen `cores/esp32/esp32-hal-ledc.h` und `.c` des lokal gepinnten Arduino-Cores 2.0.17 geprüft. Der Backlight-Pin stammt weiterhin aus dem [offiziellen Waveshare-Beispiel](https://github.com/waveshareteam/ESP32-S3-Touch-LCD-3.5/blob/main/Arduino/examples/11_lvgl_arduino_v8/11_lvgl_arduino_v8.ino). Die UI gibt mittels `vTaskDelay` Rechenzeit an Idle ab. Ohne Messung wird keine thermische Verbesserung behauptet.
 
@@ -36,3 +36,9 @@ g++ -std=c++11 -Wall -Wextra -Werror -Isrc tests/sequencer_engine.cpp src/sequen
 Abgedeckt: Start/Stop, doppelte Starts, Rest, Gate-Enden, 100-%-Gate, Note-Off-Reihenfolge, Edit einer aktiven Tonhöhe, Tempoänderungen, ungültige Daten, längere Scheduler-Aussetzer, Pattern-Umbruch, Überschreiten des 32-Bit-Mikrosekundenbereichs und 10.000 Steps bei 137 BPM.
 
 Die Touch-Transformation bleibt unverändert. M2-Bedienabnahme: alle Steps wählen, Noten/Oktaven ändern, Rest, Gate und Velocity prüfen; goldene Laufmarkierung und türkise Auswahl unabhängig testen; Helligkeit 10/40/100 % vergleichen. Stop muss das letzte Note Off erzeugen. Neustart muss den dokumentierten Ausgangszustand wiederherstellen.
+
+## Speichern auf ausdrücklichen Benutzerwunsch
+
+Pattern (16 Steps mit Note, Velocity, Gate, Rest), BPM und Helligkeit liegen in einem 80-Byte-Datensatz mit Formatversion, Generation und CRC32. NVS/Preferences hält zwei abwechselnd geschriebene Slots; beim Boot wird der neueste vollständig gültige Slot gewählt. Bei ungültigen Daten gelten sichere Defaults. Es werden keine Synthesizer-Klangparameter und keine Transportzustände gespeichert.
+
+Touch-Änderungen werden erst nach zwei Sekunden Inaktivität geschrieben, um Flash-Verschleiß beim Schieben und schnellen Editieren zu begrenzen. Die Save-Schaltfläche und Back im Settings-Menü schreiben sofort. UI zeigt Defaults, Saving, Saved oder SAVE ERROR. NVS wird ausschließlich aus dem Arduino-Loop benutzt; die Timing-Aufgabe besitzt weder Filesystem noch Preferences. Die Formatkodierung ist unabhängig vom C++-Struct-Layout und wird auf CRC-Fehler, Bereichsverletzungen und Slot-Fallback getestet.

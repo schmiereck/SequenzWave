@@ -102,7 +102,7 @@ const char* begin() {
 bool touchAvailable() { return hasTouch; }
 
 void setBrightness(uint8_t percent) {
-    lightPercent = percent < 10 ? 10 : (percent > 100 ? 100 : percent);
+    lightPercent = percent < 2 ? 2 : (percent > 100 ? 100 : percent);
     ledcWrite(board::kBacklightPwmChannel, (lightPercent * 255U + 50U) / 100U);
 }
 uint8_t brightness() { return lightPercent; }

@@ -62,7 +62,11 @@ void run(void*) {
 }  // namespace
 
 namespace app {
-bool begin() {
+bool begin(const sequencer::Pattern& pattern, uint16_t bpm) {
+    for (unsigned i = 0; i < sequencer::kStepCount; ++i) {
+        if (!engine.setStep(i, pattern.steps[i])) return false;
+    }
+    engine.setTempo(bpm, 0);
     commands = xQueueCreateStatic(32, sizeof(Command), commandStorage, &commandControl);
     events = xQueueCreateStatic(128, sizeof(Event), eventStorage, &eventControl);
     return commands && events && xTaskCreateStaticPinnedToCore(

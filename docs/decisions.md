@@ -27,4 +27,4 @@ Ein interner 20-Zeilen-Puffer statt Vollbild benötigt 19.200 Bytes. Die synchro
 
 ## Storage und MIDI später
 
-Für M4: NVS für kleine globale Einstellungen, LittleFS für versionierte Pattern-Dateien prüfen, inklusive atomarem Speichern und Fehlerfalltests. Kein Rohdump einer C++-Struktur. Für M2: abstrakter MidiOutput mit Mock, später UART. Keine CC-Automation und keine Sounddaten im Pattern. Die tatsächliche DIN-Schaltung bleibt M3 vorbehalten.
+Auf ausdrücklichen Benutzerwunsch speichert M2 bereits das einzelne Pattern, BPM und Helligkeit als versionierte NVS-Datensätze mit zwei Recovery-Slots und CRC. M4 erweitert dies um mehrere Patterns, Kopieren/Löschen und prüft LittleFS für versionierte Pattern-Dateien. Kein Rohdump einer C++-Struktur. MidiOutput ist in M2 abstrakt mit Mock implementiert, später UART. Keine CC-Automation und keine Sounddaten im Pattern. Die tatsächliche DIN-Schaltung bleibt M3 vorbehalten.

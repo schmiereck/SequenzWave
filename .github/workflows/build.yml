@@ -16,3 +16,5 @@ jobs:
       - run: /tmp/touch-test
       - run: g++ -std=c++11 -Wall -Wextra -Werror -Isrc tests/sequencer_engine.cpp src/sequencer/SequencerEngine.cpp -o /tmp/sequencer-test
       - run: /tmp/sequencer-test
+      - run: g++ -std=c++11 -Wall -Wextra -Werror -Isrc tests/settings_codec.cpp src/storage/SettingsCodec.cpp -o /tmp/settings-test
+      - run: /tmp/settings-test

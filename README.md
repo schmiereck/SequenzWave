@@ -10,16 +10,16 @@ Standalone Touch-MIDI-Sequencer für das **Waveshare ESP32-S3-Touch-LCD-3.5-C**.
 - **BPM −/+**: 30–300 BPM, Startwert 120.
 - **Step antippen**, dann **Note −/+** (Halbton) oder **Oct −/+** (Oktave). MIDI-Noten 0–127; C4 = MIDI 60.
 - **Rest/Enable:** Step pausieren oder wieder aktivieren. Die Note bleibt erhalten.
-- **Settings:** Gate 5–100 %, Velocity 1–127 und Helligkeit 10–100 %. Starthelligkeit 40 %.
+- **Settings:** Gate 5–100 %, Velocity 1–127 und Helligkeit 2–100 %. Ohne gespeicherten Wert startet die Helligkeit bei 10 %.
 - Änderungen am Step werden beim nächsten Abspielen dieses Steps wirksam. Eine gerade klingende Note behält ihr ursprüngliches Note Off.
 - Ein Tempo-Wechsel setzt das nächste Step-Intervall ab dem Änderungszeitpunkt neu an. Start/Stop ist unabhängig von der Step-Auswahl.
-- Ein Demo-Pattern liegt im RAM. **Noch keine Speicherung und kein elektrisches MIDI OUT**. Neustart setzt Pattern, Tempo und Helligkeit zurück.
+- Pattern, BPM und Helligkeit werden nach zwei Sekunden ohne weitere Änderung in NVS gespeichert. **Save** schreibt sofort; **Back** im Settings-Menü speichert ebenfalls sofort. Während „Saving...“ angezeigt wird, kann ein unmittelbarer Reset die letzte Änderung verlieren. Beim Neustart werden die letzten gültigen Werte geladen. Transport (Play/Stop) und ausgewählter Step werden nicht gespeichert. Noch kein elektrisches MIDI OUT.
 
 Die Mock-Ausgabe im USB-Monitor zeigt `MOCK t=… ON/OFF ch=1 note=… vel=…`. Der Zeitstempel kommt aus dem Sequencer-Task; die spätere USB-Ankunft ist keine Timingmessung. Optional lässt sich für Prüfungen `p` (Start) oder `s` (Stop) über den Monitor senden. Reguläre Bedienung erfolgt vollständig über Touch.
 
 ## Helligkeit und Wärme
 
-Die Hintergrundbeleuchtung wird über GPIO6 mit 20-kHz-PWM geregelt. 40 % bedeutet PWM-Tastverhältnis, keine gemessene Helligkeits- oder Leistungsreduktion. Die UI schläft zwischen Durchläufen etwa 5 ms, statt mit `yield()` ständig erneut zu laufen. Die Engine bleibt in einem separaten Task aktiv. CPU-Takt und Stromversorgung wurden nicht verändert. Eine Temperaturmessung oder bestätigte Wärmeabnahme liegt noch nicht vor.
+Die Hintergrundbeleuchtung wird über GPIO6 mit 20-kHz-PWM geregelt. Der Regler zeigt das PWM-Tastverhältnis, keine kalibrierte Leuchtdichte. Der Benutzer meldet bei 10 % deutlich weniger Wärme als bei voller Helligkeit; eine Temperaturmessung liegt nicht vor. Die UI schläft zwischen Durchläufen etwa 5 ms, statt mit `yield()` ständig erneut zu laufen. Die Engine bleibt in einem separaten Task aktiv. CPU-Takt und Stromversorgung wurden nicht verändert. Bei 2 % könnte die Anzeige je nach Umgebungslicht schwer lesbar sein; den Regler gegebenenfalls wieder nach rechts schieben.
 
 ## Build unter VS Code / PlatformIO
 
@@ -70,16 +70,17 @@ Die App wartet nicht auf USB. Alle fünf Sekunden erscheint `UI alive` mit Touch
 - `src/midi`: abstrakte MidiOutput-Schnittstelle für Note On/Off; derzeit ausschließlich Mock.
 - `src/app`: separater FreeRTOS-Task auf Core 0, Priorität 3, statische Befehls-/Ereignisqueues und Zustandskopie. Keine Heap-Allokation oder USB-Ausgabe im Timingpfad.
 - `src/hardware`: Display, Touch, LVGL-Port und Backlight-PWM.
+- `src/storage`: versioniertes NVS-Format mit zwei Prüfsummen-Slots; schreibt nur aus dem UI-Loop.
 - `src/ui`: LVGL-Ansicht auf dem Arduino-Loop-Task. Befehle gehen in eine Queue; Lauflicht liest einen geschützten Snapshot.
 
 Details und Timinggrenzen: [Meilenstein 2](docs/milestone2.md).
 
 ## Nächste Schritte
 
-1. Neue Oberfläche, Helligkeitsregler und Lauflicht am Board prüfen.
+1. Vierergruppierung, 2-%-Helligkeit und Save/Reset am Board bestätigen.
 2. Standalone-Lauf mit Wiedergabe und Wärmevergleich bei reduzierter Helligkeit.
 3. Danach M3: UART-Pins und DIN-Schaltung abschließend prüfen, elektrische Ausgabe implementieren und messen.
-4. Pattern-Speicherung folgt erst in M4.
+4. M4 erweitert die einfache NVS-Speicherung um mehrere Patterns, Kopieren/Löschen und Fehlerbehandlung.
 
 Weitere Details: [Hardware und Quellen](docs/hardware.md), [Entscheidungen](docs/decisions.md), [Prüfprotokoll](docs/validation.md), [Projektkonventionen](AGENTS.md).
 
