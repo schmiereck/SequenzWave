@@ -77,7 +77,7 @@ Details und Timinggrenzen: [Meilenstein 2](docs/milestone2.md).
 
 ## Nächste Schritte
 
-1. Vierergruppierung, 2-%-Helligkeit und Save/Reset am Board bestätigen.
+1. Vierergruppierung und 2-%-Helligkeit am Board bestätigen; Save/Reset für Pattern und Einstellungen ist bestätigt.
 2. Standalone-Lauf mit Wiedergabe und Wärmevergleich bei reduzierter Helligkeit.
 3. Danach M3: UART-Pins und DIN-Schaltung abschließend prüfen, elektrische Ausgabe implementieren und messen.
 4. M4 erweitert die einfache NVS-Speicherung um mehrere Patterns, Kopieren/Löschen und Fehlerbehandlung.
