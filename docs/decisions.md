@@ -25,6 +25,8 @@ Ein interner 20-Zeilen-Puffer statt Vollbild benötigt 19.200 Bytes. Die synchro
 - PSRAM bleibt ein eigener Starttest, obwohl der kleine LVGL-Puffer internen RAM nutzt.
 - SPI-Flush blockiert die UI kurzzeitig. Eine spätere MIDI-Engine darf deshalb nicht im UI-Loop getaktet werden.
 
-## Storage und MIDI später
+## Storage, MIDI und Analog-Sync
 
-Auf ausdrücklichen Benutzerwunsch speichert M2 bereits das einzelne Pattern, BPM und Helligkeit als versionierte NVS-Datensätze mit zwei Recovery-Slots und CRC. M4 erweitert dies um mehrere Patterns, Kopieren/Löschen und prüft LittleFS für versionierte Pattern-Dateien. Kein Rohdump einer C++-Struktur. MidiOutput ist in M2 abstrakt mit Mock implementiert, später UART. Keine CC-Automation und keine Sounddaten im Pattern. Die tatsächliche DIN-Schaltung bleibt M3 vorbehalten.
+Auf ausdrücklichen Benutzerwunsch speichert M2 bereits das einzelne Pattern, BPM und Helligkeit als versionierte NVS-Datensätze mit zwei Recovery-Slots und CRC. M3 ergänzt den MIDI-Kanal mit rückwärtskompatibler Formatversion 2. M4 erweitert dies um mehrere Patterns, Kopieren/Löschen und prüft LittleFS für versionierte Pattern-Dateien. Kein Rohdump einer C++-Struktur. MidiOutput hat UART1 und einen getrennten Mock-Diagnosespiegel. Keine CC-Automation und keine Sounddaten im Pattern. Die elektrische DIN-Schaltung ist dokumentiert, aber noch nicht aufgebaut.
+
+Der bestätigte Rev2.0-Header enthält keine zwei völlig unbelegten, gut erreichbaren GPIOs. Für Analog-Sync werden GPIO17/18 aus der nicht benötigten OV5640-Verbindung frei, **erst nachdem das Kamerakabel abgezogen ist**. SD, Audio, USB und MIDI bleiben dadurch verfügbar. Das [ClockSync-Modell](clock_sync.md) ist unabhängig von Arduino/LVGL; Hardware-ISR, 5-V-Ausgang und Transportschnittstelle folgen nach elektrischem Aufbau. Der angeschlossene Lautsprecher bleibt für eine spätere akustische Rückmeldung reserviert, wird jetzt nicht initialisiert.

@@ -20,3 +20,5 @@ jobs:
       - run: /tmp/settings-test
       - run: g++ -std=c++11 -Wall -Wextra -Werror -Isrc tests/midi_wire.cpp -o /tmp/midi-wire-test
       - run: /tmp/midi-wire-test
+      - run: g++ -std=c++11 -Wall -Wextra -Werror -Isrc tests/clock_sync.cpp src/clocksync/ClockSync.cpp -o /tmp/clock-sync-test
+      - run: /tmp/clock-sync-test

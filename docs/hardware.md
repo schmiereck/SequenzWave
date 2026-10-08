@@ -2,7 +2,7 @@
 
 ## Variante und Quellenlage
 
-Der Benutzer bestätigt am Etikett **ESP32-S3-Touch-LCD-3.5-C**, FT6336, ST7796, 320×480, 8 MB PSRAM und TCA9554 sowie die Zuordnung zu COM3. Die PCB-Revision V1/V2 ist noch nicht abgelesen. Waveshare bezeichnet V1 und V2 als softwarekompatibel. V2 ergänzt unter anderem SD-Erkennung und überarbeitet Stromversorgung/PCB. Nicht mit **3.5B** verwechseln. [Herstellerübersicht](https://docs.waveshare.com/ESP32-S3-Touch-LCD-3.5)
+Der Benutzer bestätigt am Etikett **ESP32-S3-Touch-LCD-3.5-C**, FT6336, ST7796, 320×480, 8 MB PSRAM und TCA9554 sowie die Zuordnung zu COM3. Nach Öffnen des Gehäuses hat er die PCB-Revision **Rev2.0** abgelesen und einen angeschlossenen Lautsprecher am Speaker-Port gesehen. Waveshare bezeichnet V1 und V2 als softwarekompatibel. V2 ergänzt unter anderem SD-Erkennung und überarbeitet Stromversorgung/PCB. Nicht mit **3.5B** verwechseln. [Herstellerübersicht](https://docs.waveshare.com/ESP32-S3-Touch-LCD-3.5)
 
 Bestätigte Familie: ESP32-S3R8, 8 MB PSRAM, 16 MB externer Flash, 320×480 IPS, ST7796 (SPI), FT6336 (I²C). Die 16-MB-Flash-Bauteilbezeichnung unterscheidet sich zwischen den Schaltplänen; deshalb keinen bestimmten Flashhersteller voraussetzen.
 
@@ -37,7 +37,7 @@ Der Host-Test prüft die mathematische Abbildung, nicht die Montageorientierung 
 |---|---|---|
 | SD_MMC CLK/CMD/D0 | 11/10/9 | nicht aktivieren; eigener Bus |
 | I²S MCLK/BCLK/LRCK/SDOUT | 12/13/15/16 | Audio unbenutzt |
-| Kamera XCLK/PCLK/VSYNC/HREF | 38/41/17/18 | reserviert trotz unbenutzter Kamera |
+| Kamera XCLK/PCLK/VSYNC/HREF | 38/41/17/18 | OV5640 angeschlossen, aber unbenutzt; GPIO17/18 erst nach Abstecken für Sync vorsehen |
 | Kamera D0…D7 | 45/47/48/46/42/40/39/21 | nicht als freie MIDI-Pins behandeln |
 | Kamera SCCB | 8/7 | gemeinsamer I²C-Bus |
 | MIDI UART1 TX | GPIO44, `ESP_RXD`: V1 J8 Pin 27 / V2 J8 Pin 28 | M3: GPIO-Matrix; keine UART0-Bootmeldungen auf diesem Pin |
@@ -55,3 +55,5 @@ M3 verwendet GPIO44 (`ESP_RXD`) als UART1 TX über die GPIO-Matrix. Die grafisch
 Beide PDFs wurden über Textextraktion untersucht. Die Netzanordnung lässt sich daraus nicht überall sicher rekonstruieren; die vollständige visuelle Prüfung bleibt offen. Die implementierten Display-/Touch-Pins sind zusätzlich unmittelbar durch das offizielle Beispiel belegt. USB-C enthält CC-Pulldowns; USB-Host und dessen Versorgung sind kein Bestandteil dieses Meilensteins.
 
 Die DIN-Schaltung und das Pin-Konfliktaudit sind in [Meilenstein 3](milestone3.md) dokumentiert. Keine DIN-Buchse direkt mit ESP-GPIOs verbinden; der vorgesehene Ausgang enthält einen 3,3-V-Puffer und die Widerstände der MIDI-Spezifikation.
+
+Die zusätzliche Analog-Sync-Planung samt Rev2.0-Headerpins, Schutzeingang, 5-V-Ausgangsstufe und Camera/SD/Audio-Konfliktaudit steht in [clock_sync.md](clock_sync.md). Die Sync-GPIOs sind noch nicht initialisiert.

@@ -12,6 +12,9 @@ constexpr int kBacklight = 6;
 // ESP_RXD / GPIO44: J8 pin 27 on V1, pin 28 on V2. UART1 TX; no UART0 boot text.
 constexpr int kMidiTx = 44;
 constexpr uint32_t kMidiBaud = 31250;
+// Rev2.0 J8 pins 15/17. Reserved for sync only after OV5640 ribbon is unplugged.
+constexpr int kSyncIn = 17;
+constexpr int kSyncOut = 18;
 constexpr uint8_t kBacklightPwmChannel = 0;
 constexpr uint32_t kBacklightPwmHz = 20000;
 constexpr uint8_t kDefaultBrightness = 10;

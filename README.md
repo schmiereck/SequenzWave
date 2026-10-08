@@ -4,6 +4,8 @@ Standalone Touch-MIDI-Sequencer für das **Waveshare ESP32-S3-Touch-LCD-3.5-C**.
 
 **Meilenstein 1:** Display und Touch am Board bestätigt. **Meilenstein 2:** 16-Step-Prototyp mit eigener Timing-Engine, Helligkeit und NVS-Speicherung am Board bestätigt. **Meilenstein 3:** UART-MIDI OUT implementiert; DIN-Schaltung und Volca-Test stehen noch aus. Den Prüfstand dokumentiert [docs/validation.md](docs/validation.md).
 
+Die Platine im Gehäuse ist **Rev2.0**. Ein Lautsprecher ist angeschlossen. Für die Volca-Sync-Erweiterung sind GPIO17/18 nach Abstecken der ungenutzten Kamera vorgesehen; die [Sync-Hardware und Clock-Architektur](docs/clock_sync.md) sind dokumentiert, aber in der Firmware noch nicht aktiviert.
+
 ## Bedienung
 
 - **Play/Stop:** Start immer bei Step 1; jeder Step ist eine Sechzehntelnote. Gold markiert die Wiedergabe, der türkise Rahmen die Bearbeitungsauswahl.
@@ -68,6 +70,7 @@ Die App wartet nicht auf USB. Alle fünf Sekunden erscheint `UI alive` mit Touch
 
 - `src/sequencer`: PatternModel und SequencerEngine, reines C++ ohne Arduino/LVGL. 64-Bit-Zeit in Mikrosekunden, absolute Step-Grenzen ohne aufsummierten Rundungsfehler.
 - `src/midi`: abstrakte MidiOutput-Schnittstelle für Note On/Off; UART1-Ausgang mit fester Bytequeue und USB-Diagnosespiegel.
+- `src/clocksync`: hardwareunabhängiges Zeitmodell für interne BPM und analoge 2/4-PPQN-Impulse. Noch nicht mit GPIOs oder der Wiedergabe verbunden.
 - `src/app`: separater FreeRTOS-Task auf Core 0, Priorität 3, statische Befehls-/Ereignisqueues und Zustandskopie. Keine Heap-Allokation oder USB-Ausgabe im Timingpfad.
 - `src/hardware`: Display, Touch, LVGL-Port und Backlight-PWM.
 - `src/storage`: versioniertes NVS-Format mit zwei Prüfsummen-Slots; schreibt nur aus dem UI-Loop.
@@ -77,9 +80,10 @@ Details und Timinggrenzen: [Meilenstein 2](docs/milestone2.md).
 
 ## Nächste Schritte
 
-1. PCB-Revision und Zugang zu J8 im Gehäuse feststellen; MIDI-OUT-Schaltung aus [Meilenstein 3](docs/milestone3.md) aufbauen.
+1. Beim bestätigten Rev2.0-Board die Pin-1-Orientierung von J8 prüfen und die MIDI-OUT-Schaltung aus [Meilenstein 3](docs/milestone3.md) aufbauen.
 2. DIN-Ausgang elektrisch prüfen und mit dem Volca FM Note On/Off, Kanal und Gate testen; Timing messen.
-3. Danach erweitert M4 die einfache NVS-Speicherung um mehrere Patterns, Kopieren/Löschen und Fehlerbehandlung.
+3. Ungenutzte OV5640 abstecken, Sync-Schaltungen aus [clock_sync.md](docs/clock_sync.md) aufbauen und elektrisch prüfen. Danach GPIO-ISR, Pulsweitergabe, Transport und UI mit dem ClockSync-Modul verbinden.
+4. M4 erweitert die einfache NVS-Speicherung um mehrere Patterns, Kopieren/Löschen und Fehlerbehandlung.
 
 Weitere Details: [Hardware und Quellen](docs/hardware.md), [Entscheidungen](docs/decisions.md), [Prüfprotokoll](docs/validation.md), [Projektkonventionen](AGENTS.md).
 

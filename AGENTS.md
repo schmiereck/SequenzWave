@@ -1,9 +1,10 @@
 # SequenzWave conventions
 
-- Current scope: milestone 3, UART1/DIN MIDI OUT on GPIO44 plus USB mock diagnostics. Physical DIN circuit and Volca test pending.
+- Current scope: milestone 3, UART1/DIN MIDI OUT on GPIO44 plus USB mock diagnostics. Physical DIN circuit and Volca test pending. Analog Volca sync is being designed; GPIO17/18 must not be activated until the OV5640 is unplugged and sync circuits are checked.
 - Read README.md and docs/hardware.md before changing board configuration.
 - Use PlatformIO, pinned dependencies, Arduino and LVGL 8.4. Never silently upgrade a major version.
 - GPIO definitions belong in src/hardware/BoardConfig.h. Confirm changes against the official schematic and examples, with source links.
+- Confirmed board PCB revision is Rev2.0. Reserve GPIO17/J8-15 and GPIO18/J8-17 for analog sync only after the camera ribbon is disconnected; preserve audio, SD and USB pins.
 - Hardware and UI are separate. All LVGL calls run on the Arduino loop task.
 - SequencerEngine and PatternModel are plain C++ independent of Arduino/LVGL; keep host tests covering scheduling and note lifetimes.
 - MIDI scheduling uses a separate timing task/clock and bounded command queue, never UI frame timing. No dynamic allocation, logging or filesystem work in the MIDI timing path.
