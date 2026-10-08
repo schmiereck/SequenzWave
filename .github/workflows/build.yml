@@ -1,0 +1,16 @@
+name: Firmware
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install platformio==6.1.18
+      - run: python scripts/check_config.py
+      - run: pio run -e waveshare_s3
+      - run: pio check -e waveshare_s3 --fail-on-defect high
+      - run: g++ -std=c++11 -Wall -Wextra -Werror -Isrc tests/touch_transform.cpp -o /tmp/touch-test
+      - run: /tmp/touch-test

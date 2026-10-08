@@ -1,0 +1,8 @@
+.pio/
+.pio-core/
+.venv/
+.tools/
+.reference/
+build/
+__pycache__/
+.vscode/
