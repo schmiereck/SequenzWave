@@ -4,7 +4,7 @@ Standalone Touch-MIDI-Sequencer für das **Waveshare ESP32-S3-Touch-LCD-3.5-C**.
 
 **Meilenstein 1:** Display und Touch am Board bestätigt. **Meilenstein 2:** 16-Step-Prototyp mit eigener Timing-Engine, Helligkeit und NVS-Speicherung am Board bestätigt. **Meilenstein 3:** UART-MIDI OUT implementiert; DIN-Schaltung und Volca-Test stehen noch aus. Den Prüfstand dokumentiert [docs/validation.md](docs/validation.md).
 
-Die Platine im Gehäuse ist **Rev2.0**. Ein Lautsprecher ist angeschlossen. Für die Volca-Sync-Erweiterung sind GPIO17/18 nach Abstecken der ungenutzten Kamera vorgesehen; die [Sync-Hardware und Clock-Architektur](docs/clock_sync.md) sind dokumentiert, aber in der Firmware noch nicht aktiviert.
+Die Platine im Gehäuse ist **Rev2.0**. Ein Lautsprecher ist angeschlossen; die OV5640-Kamera wurde ausgebaut. GPIO17/18 sind für Volca-Sync reserviert. Die [Sync-Hardware und Clock-Architektur](docs/clock_sync.md) sind dokumentiert, aber in der Firmware noch nicht aktiviert.
 
 ## Bedienung
 
@@ -12,10 +12,10 @@ Die Platine im Gehäuse ist **Rev2.0**. Ein Lautsprecher ist angeschlossen. Für
 - **BPM −/+**: 30–300 BPM, Startwert 120.
 - **Step antippen**, dann **Note −/+** (Halbton) oder **Oct −/+** (Oktave). MIDI-Noten 0–127; C4 = MIDI 60.
 - **Rest/Enable:** Step pausieren oder wieder aktivieren. Die Note bleibt erhalten.
-- **Settings:** Gate 5–100 %, Velocity 1–127, MIDI-Kanal 1–16 und Helligkeit 2–100 %. Ohne gespeicherten Wert startet die Helligkeit bei 10 % und der Kanal bei 1.
+- **Settings:** Gate 5–100 %, Velocity 1–127, MIDI-Kanal 1–16, Helligkeit 2–100 % und **Ton** (Aus → Metronom → Noten). Der Schalter oben wechselt bei jedem Antippen den Modus. Standard ist Aus. Metronom klickt auf Viertelnoten, mit höherem Ton auf Step 1. Noten gibt die MIDI-Noten lokal als einfachen Sinuston wieder; Pausen bleiben still. Der Lautsprecher ist nur ein Monitor, kein Volca-Klangmodell.
 - Änderungen am Step werden beim nächsten Abspielen dieses Steps wirksam. Eine gerade klingende Note behält ihr ursprüngliches Note Off.
 - Ein Tempo-Wechsel setzt das nächste Step-Intervall ab dem Änderungszeitpunkt neu an. Start/Stop ist unabhängig von der Step-Auswahl.
-- Pattern, BPM, MIDI-Kanal und Helligkeit werden nach zwei Sekunden ohne weitere Änderung in NVS gespeichert. **Save** schreibt sofort; **Back** im Settings-Menü speichert ebenfalls sofort. Während „Saving...“ angezeigt wird, kann ein unmittelbarer Reset die letzte Änderung verlieren. Beim Neustart werden die letzten gültigen Werte geladen. Transport (Play/Stop) und ausgewählter Step werden nicht gespeichert.
+- Pattern, BPM, MIDI-Kanal, Helligkeit und Tonmodus werden nach zwei Sekunden ohne weitere Änderung in NVS gespeichert. **Save** schreibt sofort; **Back** im Settings-Menü speichert ebenfalls sofort. Während „Saving...“ angezeigt wird, kann ein unmittelbarer Reset die letzte Änderung verlieren. Beim Neustart werden die letzten gültigen Werte geladen. Transport (Play/Stop) und ausgewählter Step werden nicht gespeichert.
 
 Die USB-Diagnose spiegelt die UART-MIDI-Ereignisse als `MOCK t=… ON/OFF ch=… note=… vel=…`. Der Zeitstempel kommt aus dem Sequencer-Task; die spätere USB-Ankunft ist keine Timingmessung. Der UART-Ausgang liegt auf GPIO44 (`ESP_RXD`), **J8 Pin 27 bei V1 oder Pin 28 bei V2**, und benötigt die Schaltung aus [Meilenstein 3](docs/milestone3.md). Optional lässt sich für Prüfungen `p` (Start) oder `s` (Stop) über den Monitor senden. Reguläre Bedienung erfolgt vollständig über Touch.
 
@@ -73,6 +73,7 @@ Die App wartet nicht auf USB. Alle fünf Sekunden erscheint `UI alive` mit Touch
 - `src/clocksync`: hardwareunabhängiges Zeitmodell für interne BPM und analoge 2/4-PPQN-Impulse. Noch nicht mit GPIOs oder der Wiedergabe verbunden.
 - `src/app`: separater FreeRTOS-Task auf Core 0, Priorität 3, statische Befehls-/Ereignisqueues und Zustandskopie. Keine Heap-Allokation oder USB-Ausgabe im Timingpfad.
 - `src/hardware`: Display, Touch, LVGL-Port und Backlight-PWM.
+- `src/audio`: ES8311/I²S-Lautsprecher mit eigener PCM-Task und begrenzter Eventqueue. Der MIDI-Timing-Task stellt nur nichtblockierende Ereignisse ein.
 - `src/storage`: versioniertes NVS-Format mit zwei Prüfsummen-Slots; schreibt nur aus dem UI-Loop.
 - `src/ui`: LVGL-Ansicht auf dem Arduino-Loop-Task. Befehle gehen in eine Queue; Lauflicht liest einen geschützten Snapshot.
 

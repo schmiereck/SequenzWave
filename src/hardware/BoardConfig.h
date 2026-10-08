@@ -15,6 +15,12 @@ constexpr uint32_t kMidiBaud = 31250;
 // Rev2.0 J8 pins 15/17. Reserved for sync only after OV5640 ribbon is unplugged.
 constexpr int kSyncIn = 17;
 constexpr int kSyncOut = 18;
+// Rev2.0 onboard ES8311 / NS4150B speaker path.
+constexpr int kAudioMclk = 12;
+constexpr int kAudioBclk = 13;
+constexpr int kAudioLrck = 15;
+constexpr int kAudioDataOut = 16;
+constexpr uint8_t kAmpEnableExpanderPin = 7;
 constexpr uint8_t kBacklightPwmChannel = 0;
 constexpr uint32_t kBacklightPwmHz = 20000;
 constexpr uint8_t kDefaultBrightness = 10;

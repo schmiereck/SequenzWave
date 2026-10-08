@@ -8,4 +8,5 @@ bool touchAvailable();
 void service();
 void setBrightness(uint8_t percent);
 uint8_t brightness();
+bool setSpeakerAmplifier(bool enabled);
 }  // namespace hardware

@@ -36,9 +36,10 @@ Der Host-Test prüft die mathematische Abbildung, nicht die Montageorientierung 
 | Peripherie | GPIOs | Status |
 |---|---|---|
 | SD_MMC CLK/CMD/D0 | 11/10/9 | nicht aktivieren; eigener Bus |
-| I²S MCLK/BCLK/LRCK/SDOUT | 12/13/15/16 | Audio unbenutzt |
-| Kamera XCLK/PCLK/VSYNC/HREF | 38/41/17/18 | OV5640 angeschlossen, aber unbenutzt; GPIO17/18 erst nach Abstecken für Sync vorsehen |
-| Kamera D0…D7 | 45/47/48/46/42/40/39/21 | nicht als freie MIDI-Pins behandeln |
+| I²S MCLK/BCLK/LRCK/SDOUT | 12/13/15/16 | ES8311-Lautsprecher; Tonmonitor aktiv |
+| Verstärker PA_CTRL | TCA9554 P7 / EXIO7 | NS4150B aktiv HIGH; bei Ton „Aus“ LOW |
+| Kamera XCLK/PCLK/VSYNC/HREF | 38/41/17/18 | OV5640 vom Benutzer ausgebaut; GPIO17/18 für Sync reserviert |
+| Kamera D0…D7 | 45/47/48/46/42/40/39/21 | Kabel ausgebaut, weiterhin nicht als freie MIDI-Pins behandeln |
 | Kamera SCCB | 8/7 | gemeinsamer I²C-Bus |
 | MIDI UART1 TX | GPIO44, `ESP_RXD`: V1 J8 Pin 27 / V2 J8 Pin 28 | M3: GPIO-Matrix; keine UART0-Bootmeldungen auf diesem Pin |
 

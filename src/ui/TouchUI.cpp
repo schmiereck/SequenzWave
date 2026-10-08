@@ -2,6 +2,7 @@
 #include "app/SequencerRuntime.h"
 #include "hardware/Hardware.h"
 #include "storage/SettingsStore.h"
+#include "audio/Speaker.h"
 #include <lvgl.h>
 #include <cstdio>
 
@@ -18,6 +19,7 @@ lv_obj_t* gateText;
 lv_obj_t* velocityText;
 lv_obj_t* channelText;
 lv_obj_t* lightText;
+lv_obj_t* audioText;
 storage::Data saved;
 sequencer::Pattern& pattern = saved.pattern;
 unsigned selected = 0;
@@ -140,6 +142,18 @@ void closeSettings(lv_event_t*) {
     storage::saveNow();
     lv_obj_add_flag(settings, LV_OBJ_FLAG_HIDDEN);
 }
+void audioChanged(lv_event_t*) {
+    const auto next = static_cast<audio::Mode>((static_cast<uint8_t>(saved.audioMode) + 1) % 3);
+    if (!audio::setMode(next)) {
+        lv_label_set_text(footer, "Speaker unavailable");
+        return;
+    }
+    saved.audioMode = next;
+    const char* name = next == audio::Mode::Off ? "Aus" :
+        (next == audio::Mode::Metronome ? "Metronom" : "Noten");
+    lv_label_set_text_fmt(audioText, "Ton: %s", name);
+    storage::schedule(saved);
+}
 void midiChannelChanged(lv_event_t* event) {
     const int change = static_cast<int>(reinterpret_cast<intptr_t>(lv_event_get_user_data(event)));
     const int next = channel + change;
@@ -208,6 +222,11 @@ void create(bool touchAvailable, const storage::Data& loaded) {
     lv_obj_set_style_text_color(settings, lv_color_hex(0xf1f5fa), 0);
     lv_obj_clear_flag(settings, LV_OBJ_FLAG_SCROLLABLE);
     label(settings, "Step / MIDI / Display", 16, 14);
+    const char* audioName = saved.audioMode == audio::Mode::Off ? "Aus" :
+        (saved.audioMode == audio::Mode::Metronome ? "Metronom" : "Noten");
+    auto* audioButton = button(settings, "", 182, 6, 176, audioChanged);
+    audioText = lv_obj_get_child(audioButton, 0);
+    lv_label_set_text_fmt(audioText, "Ton: %s", audioName);
     button(settings, "Back", 368, 6, 96, closeSettings);
     gateText = label(settings, "", 16, 76);
     button(settings, "-", 220, 60, 80, edit, -2000);

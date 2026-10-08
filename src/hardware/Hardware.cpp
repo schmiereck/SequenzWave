@@ -61,7 +61,9 @@ const char* begin() {
     if (!Wire.begin(board::kSda, board::kScl, 400000)) return "I2C init failed";
     Wire.setTimeOut(20);
     if (!expander.begin() ||
-        !expander.pinMode1(board::kResetExpanderPin, OUTPUT)) {
+        !expander.pinMode1(board::kResetExpanderPin, OUTPUT) ||
+        !expander.pinMode1(board::kAmpEnableExpanderPin, OUTPUT) ||
+        !expander.write1(board::kAmpEnableExpanderPin, LOW)) {
         return "TCA9554 at 0x20 missing";
     }
     // Board-specific startup timing from the Waveshare reference.
@@ -106,6 +108,9 @@ void setBrightness(uint8_t percent) {
     ledcWrite(board::kBacklightPwmChannel, (lightPercent * 255U + 50U) / 100U);
 }
 uint8_t brightness() { return lightPercent; }
+bool setSpeakerAmplifier(bool enabled) {
+    return expander.write1(board::kAmpEnableExpanderPin, enabled ? HIGH : LOW);
+}
 
 void service() {
     if (!ready) return;

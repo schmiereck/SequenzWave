@@ -3,6 +3,7 @@
 #include "ui/TouchUI.h"
 #include "app/SequencerRuntime.h"
 #include "storage/SettingsStore.h"
+#include "audio/Speaker.h"
 
 namespace {
 const char* startupError = nullptr;
@@ -16,6 +17,7 @@ void setup() {
     if (!startupError) {
         storage::begin(loaded); // A corrupt/missing record loads safe defaults.
         hardware::setBrightness(loaded.brightness);
+        if (!audio::begin(loaded.audioMode)) Serial.println("Speaker init failed; MIDI/UI continue");
         if (!app::begin(loaded.pattern, loaded.bpm, loaded.channel)) startupError = "Sequencer/UART init failed";
     }
     if (!startupError) ui::create(hardware::touchAvailable(), loaded);
@@ -34,12 +36,13 @@ void loop() {
         if (startupError) Serial.printf("INIT ERROR: %s\n", startupError);
         else if (Serial && Serial.availableForWrite() >= 120) {
             const auto state = app::snapshot();
-            Serial.printf("UI alive | touch=%s | PSRAM_heap=%u | heap=%u | nvs=%s | late_us=%llu | skipped=%u | dropped=%u | midi_drop=%u\n",
+            Serial.printf("UI alive | touch=%s | PSRAM_heap=%u | heap=%u | nvs=%s | late_us=%llu | skipped=%u | dropped=%u | midi_drop=%u | audio=%s | audio_drop=%u\n",
             hardware::touchAvailable() ? "ready" : "MISSING",
             ESP.getPsramSize(), ESP.getFreeHeap(),
             storage::loadedFromNvs() ? "loaded" : "defaults",
             static_cast<unsigned long long>(state.transport.maxLateUs),
-            state.transport.skippedSteps, state.droppedLogs, state.droppedMidi);
+            state.transport.skippedSteps, state.droppedLogs, state.droppedMidi,
+            audio::ready() ? "ready" : "ERROR", audio::droppedEvents());
         }
     }
     // Let the idle task run. Sequencer timing is owned by its separate task.

@@ -1,5 +1,13 @@
 # Prüfprotokoll – Meilensteine 1 und 2
 
+## 2026-10-08: Lautsprecher-Prototyp
+
+Der Benutzer hat die Kamera ausgebaut; GPIO17/18 bleiben ausschließlich für die noch nicht verdrahtete Analog-Sync-Schaltung reserviert. Der vorhandene Lautsprecher wird über ES8311, I²S GPIO12/13/15/16 und den NS4150B-Verstärker an TCA9554 P7 angesteuert. Es gibt drei gespeicherte UI-Modi: Aus, Metronom auf jedem Viertel (Step 1 akzentuiert), und lokale Sinustöne passend zu den Sequencer-Noten. Audio hat eine eigene statische Queue und Task; der MIDI-Timingpfad ruft nur einen nichtblockierenden Queue-Post auf. Im Modus Aus ist der Verstärker abgeschaltet und I²S hält an. Der ES8311-Treiber stammt aus dem offiziellen Waveshare-Beispiel; Quellenhinweis in `lib/ES8311/README.md`.
+
+`g++ -std=c++11 -Wall -Wextra -Werror -Isrc tests/settings_codec.cpp src/storage/SettingsCodec.cpp -o build/settings-test.exe` und `build/settings-test.exe`: **PASS**, einschließlich V1/V2-Migration und neuem Tonmodus. Host-Tests für Touch, Sequencer, MIDI-Bytes und ClockSync sowie `.\.venv\Scripts\python.exe scripts/check_config.py`: **PASS**. `.\.venv\Scripts\python.exe -m platformio run -e waveshare_s3`: **SUCCESS**, RAM 116.000/327.680 Bytes, App-Flash 571.613/3.145.728 Bytes. `.\.venv\Scripts\python.exe -m platformio check -e waveshare_s3`: **PASSED**, 0 HIGH und 11 MEDIUM aus Fremdbibliotheken; zwei Warnungen zur Makroextraktion. `.\.venv\Scripts\python.exe -m platformio run -e waveshare_s3 -t upload --upload-port COM3`: **SUCCESS**, Flash-Hash bestätigt.
+
+Serielle Lesung über etwa 11 Sekunden nach finalem Upload: zweimal `touch=ready`, `nvs=loaded`, `audio=ready`, `audio_drop=0`, `midi_drop=0`, stabiler `heap=261592`. Das bestätigt Initialisierung und Fortsetzung des UI-Loops, aber **keinen hörbaren Ton**, keine geprüfte Lautstärke und keinen am Gerät berührten Tonmodus. Der Benutzer muss Aus/Metronom/Noten, Reset-Persistenz, Wärme und Zusammenspiel mit MIDI/Touch am echten Board prüfen. Der DIN- und Sync-Aufbau sind weiterhin ausstehend.
+
 Datum: 2026-10-08. **Meilenstein 1 und 2: Benutzer meldet stabilen Betrieb und bestätigt die Bedienung. Meilenstein 3: UART-Firmware und Hostprüfungen bestanden; elektrischer DIN- und Volca-Test ausstehend. Analog-Sync ist ein noch nicht aktivierter Entwurf.**
 
 ## Meilenstein 3: UART-MIDI, vorläufig

@@ -1,5 +1,6 @@
 #pragma once
 #include "sequencer/PatternModel.h"
+#include "audio/AudioMode.h"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -11,6 +12,7 @@ struct Data {
     uint16_t bpm = 120;
     uint8_t brightness = 10;
     uint8_t channel = 1;
+    audio::Mode audioMode = audio::Mode::Off;
 };
 using Record = std::array<uint8_t, kRecordSize>;
 Record encode(const Data& data, uint32_t generation);

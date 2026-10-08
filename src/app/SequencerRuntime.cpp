@@ -1,5 +1,6 @@
 #include "SequencerRuntime.h"
 #include "midi/UartMidiOutput.h"
+#include "audio/Speaker.h"
 #include <Arduino.h>
 #include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
@@ -37,10 +38,12 @@ class MirroredMidiOutput final : public midi::MidiOutput {
     void noteOn(uint8_t channel, uint8_t note, uint8_t velocity, uint64_t at) override {
         uartOutput.noteOn(channel, note, velocity, at);
         output.noteOn(channel, note, velocity, at);
+        audio::noteOn(note, velocity);
     }
     void noteOff(uint8_t channel, uint8_t note, uint64_t at) override {
         uartOutput.noteOff(channel, note, at);
         output.noteOff(channel, note, at);
+        audio::noteOff(note);
     }
 };
 MirroredMidiOutput mirroredOutput;
@@ -48,6 +51,7 @@ sequencer::SequencerEngine engine(mirroredOutput);
 
 void run(void*) {
     TickType_t wake = xTaskGetTickCount();
+    int8_t previousStep = -1;
     for (;;) {
         app::Command command;
         // Bound processing so a stream of edits cannot starve clock handling.
@@ -65,9 +69,13 @@ void run(void*) {
             }
         }
         engine.update(esp_timer_get_time());
+        const auto transport = engine.status();
+        if (transport.playing && transport.step != previousStep && transport.step >= 0 &&
+            transport.step % 4 == 0) audio::beat(transport.step == 0);
+        previousStep = transport.playing ? transport.step : -1;
         uartOutput.drain();
         app::Snapshot next;
-        next.transport = engine.status();
+        next.transport = transport;
         next.droppedLogs = dropped;
         next.droppedMidi = uartOutput.droppedMessages();
         portENTER_CRITICAL(&snapshotLock);
