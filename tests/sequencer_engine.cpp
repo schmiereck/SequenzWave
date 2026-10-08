@@ -3,21 +3,34 @@
 #include <cstdio>
 #include <vector>
 
-struct Event { bool on; uint8_t note, velocity; uint64_t at; };
+struct Event { bool on; uint8_t channel, note, velocity; uint64_t at; };
 struct RecordingOutput : midi::MidiOutput {
     std::vector<Event> events;
     void noteOn(uint8_t channel, uint8_t note, uint8_t velocity, uint64_t at) override {
-        assert(channel == 1);
-        events.push_back({true, note, velocity, at});
+        events.push_back({true, channel, note, velocity, at});
     }
     void noteOff(uint8_t channel, uint8_t note, uint64_t at) override {
-        assert(channel == 1);
-        events.push_back({false, note, 0, at});
+        events.push_back({false, channel, note, 0, at});
     }
 };
 
 int main() {
     using sequencer::SequencerEngine;
+    {
+        RecordingOutput out;
+        SequencerEngine engine(out);
+        engine.start(0);
+        assert(out.events.back().channel == 1);
+        engine.setChannel(4, 1000);
+        assert(out.events.size() == 2 && !out.events.back().on && out.events.back().channel == 1);
+        engine.update(125000);
+        assert(out.events.back().on && out.events.back().channel == 4);
+        engine.stop(125001);
+        assert(out.events.back().channel == 4 && !out.events.back().on);
+        engine.setChannel(0, 125002);
+        engine.start(125003);
+        assert(out.events.back().channel == 4);
+    }
     {
         RecordingOutput out;
         SequencerEngine engine(out);

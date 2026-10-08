@@ -11,7 +11,7 @@ uint64_t SequencerEngine::boundary(uint64_t ordinal) const {
 
 void SequencerEngine::release(uint64_t now) {
     if (noteActive_) {
-        output_.noteOff(1, activeNote_, now);
+        output_.noteOff(activeChannel_, activeNote_, now);
         noteActive_ = false;
     }
 }
@@ -22,8 +22,9 @@ void SequencerEngine::sound(uint64_t begin, uint64_t end, uint64_t now) {
     // Do not emit stale notes after a scheduling stall.
     if (step.enabled && now < offAt_) {
         activeNote_ = step.note;
+        activeChannel_ = channel_;
         noteActive_ = true;
-        output_.noteOn(1, activeNote_, step.velocity, now);
+        output_.noteOn(activeChannel_, activeNote_, step.velocity, now);
     }
 }
 
@@ -75,5 +76,10 @@ void SequencerEngine::setTempo(uint16_t bpm, uint64_t now) {
     // A tempo edit starts a fresh step interval; the sounding note keeps its gate.
     epoch_ = now;
     ordinal_ = 0;
+}
+void SequencerEngine::setChannel(uint8_t channel, uint64_t now) {
+    if (channel < 1 || channel > 16 || channel == channel_) return;
+    release(now);  // Never leave a note sounding on the old channel.
+    channel_ = channel;
 }
 }  // namespace sequencer

@@ -18,3 +18,5 @@ jobs:
       - run: /tmp/sequencer-test
       - run: g++ -std=c++11 -Wall -Wextra -Werror -Isrc tests/settings_codec.cpp src/storage/SettingsCodec.cpp -o /tmp/settings-test
       - run: /tmp/settings-test
+      - run: g++ -std=c++11 -Wall -Wextra -Werror -Isrc tests/midi_wire.cpp -o /tmp/midi-wire-test
+      - run: /tmp/midi-wire-test

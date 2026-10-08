@@ -16,7 +16,7 @@ void setup() {
     if (!startupError) {
         storage::begin(loaded); // A corrupt/missing record loads safe defaults.
         hardware::setBrightness(loaded.brightness);
-        if (!app::begin(loaded.pattern, loaded.bpm)) startupError = "Sequencer task init failed";
+        if (!app::begin(loaded.pattern, loaded.bpm, loaded.channel)) startupError = "Sequencer/UART init failed";
     }
     if (!startupError) ui::create(hardware::touchAvailable(), loaded);
 }
@@ -34,12 +34,12 @@ void loop() {
         if (startupError) Serial.printf("INIT ERROR: %s\n", startupError);
         else if (Serial && Serial.availableForWrite() >= 120) {
             const auto state = app::snapshot();
-            Serial.printf("UI alive | touch=%s | PSRAM_heap=%u | heap=%u | nvs=%s | late_us=%llu | skipped=%u | dropped=%u\n",
+            Serial.printf("UI alive | touch=%s | PSRAM_heap=%u | heap=%u | nvs=%s | late_us=%llu | skipped=%u | dropped=%u | midi_drop=%u\n",
             hardware::touchAvailable() ? "ready" : "MISSING",
             ESP.getPsramSize(), ESP.getFreeHeap(),
             storage::loadedFromNvs() ? "loaded" : "defaults",
             static_cast<unsigned long long>(state.transport.maxLateUs),
-            state.transport.skippedSteps, state.droppedLogs);
+            state.transport.skippedSteps, state.droppedLogs, state.droppedMidi);
         }
     }
     // Let the idle task run. Sequencer timing is owned by its separate task.

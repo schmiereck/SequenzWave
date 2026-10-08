@@ -1,4 +1,5 @@
 #include "SequencerRuntime.h"
+#include "midi/UartMidiOutput.h"
 #include <Arduino.h>
 #include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
@@ -19,6 +20,7 @@ app::Snapshot shared;
 uint32_t dropped = 0;  // Timing-task-owned, published through shared snapshot.
 
 class MockMidiOutput final : public midi::MidiOutput {
+public:
     void noteOn(uint8_t channel, uint8_t note, uint8_t velocity, uint64_t at) override {
         emit({at, channel, note, velocity, true});
     }
@@ -30,7 +32,19 @@ class MockMidiOutput final : public midi::MidiOutput {
     }
 };
 MockMidiOutput output;
-sequencer::SequencerEngine engine(output);
+midi::UartMidiOutput uartOutput;
+class MirroredMidiOutput final : public midi::MidiOutput {
+    void noteOn(uint8_t channel, uint8_t note, uint8_t velocity, uint64_t at) override {
+        uartOutput.noteOn(channel, note, velocity, at);
+        output.noteOn(channel, note, velocity, at);
+    }
+    void noteOff(uint8_t channel, uint8_t note, uint64_t at) override {
+        uartOutput.noteOff(channel, note, at);
+        output.noteOff(channel, note, at);
+    }
+};
+MirroredMidiOutput mirroredOutput;
+sequencer::SequencerEngine engine(mirroredOutput);
 
 void run(void*) {
     TickType_t wake = xTaskGetTickCount();
@@ -47,12 +61,15 @@ void run(void*) {
             case app::Action::Stop: engine.stop(now); break;
             case app::Action::Tempo: engine.setTempo(command.value, now); break;
             case app::Action::Edit: engine.setStep(command.value, command.step); break;
+            case app::Action::Channel: engine.setChannel(command.value, now); break;
             }
         }
         engine.update(esp_timer_get_time());
+        uartOutput.drain();
         app::Snapshot next;
         next.transport = engine.status();
         next.droppedLogs = dropped;
+        next.droppedMidi = uartOutput.droppedMessages();
         portENTER_CRITICAL(&snapshotLock);
         shared = next;
         portEXIT_CRITICAL(&snapshotLock);
@@ -62,11 +79,13 @@ void run(void*) {
 }  // namespace
 
 namespace app {
-bool begin(const sequencer::Pattern& pattern, uint16_t bpm) {
+bool begin(const sequencer::Pattern& pattern, uint16_t bpm, uint8_t channel) {
+    if (!uartOutput.begin()) return false;
     for (unsigned i = 0; i < sequencer::kStepCount; ++i) {
         if (!engine.setStep(i, pattern.steps[i])) return false;
     }
     engine.setTempo(bpm, 0);
+    engine.setChannel(channel, 0);
     commands = xQueueCreateStatic(32, sizeof(Command), commandStorage, &commandControl);
     events = xQueueCreateStatic(128, sizeof(Event), eventStorage, &eventControl);
     return commands && events && xTaskCreateStaticPinnedToCore(

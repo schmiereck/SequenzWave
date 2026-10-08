@@ -25,10 +25,12 @@ uint32_t read32(const Record& record, size_t index) {
 Record encode(const Data& data, uint32_t generation) {
     Record record{};
     record[0] = 'S'; record[1] = 'W'; record[2] = 'V'; record[3] = '2';
-    record[4] = 1;  // Format version, independent of firmware milestone.
+    record[4] = 2;  // V2 packs MIDI channel into unused high bits of BPM high byte.
     write32(record, 5, generation);
     record[9] = static_cast<uint8_t>(data.bpm);
-    record[10] = static_cast<uint8_t>(data.bpm >> 8);
+    const bool validChannel = data.channel >= 1 && data.channel <= 16;
+    record[10] = static_cast<uint8_t>((data.bpm >> 8) |
+        ((validChannel ? data.channel - 1 : 0) << 4) | (validChannel ? 0 : 0x02));
     record[11] = data.brightness;
     for (unsigned i = 0; i < sequencer::kStepCount; ++i) {
         const auto& step = data.pattern.steps[i];
@@ -44,11 +46,14 @@ Record encode(const Data& data, uint32_t generation) {
 
 bool decode(const Record& record, Data& data, uint32_t& generation) {
     if (record[0] != 'S' || record[1] != 'W' || record[2] != 'V' ||
-        record[3] != '2' || record[4] != 1 ||
+        record[3] != '2' || (record[4] != 1 && record[4] != 2) ||
         read32(record, 76) != checksum(record)) return false;
     Data candidate;
-    candidate.bpm = uint16_t(record[9]) | (uint16_t(record[10]) << 8);
+    if ((record[4] == 2 && (record[10] & 0x0e)) ||
+        (record[4] == 1 && record[10] > 1)) return false;
+    candidate.bpm = uint16_t(record[9]) | (uint16_t(record[10] & 1) << 8);
     candidate.brightness = record[11];
+    candidate.channel = record[4] == 2 ? (record[10] >> 4) + 1 : 1;
     if (candidate.bpm < 30 || candidate.bpm > 300 ||
         candidate.brightness < 2 || candidate.brightness > 100) return false;
     for (unsigned i = 0; i < sequencer::kStepCount; ++i) {

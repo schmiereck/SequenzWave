@@ -40,11 +40,11 @@ Der Host-Test prüft die mathematische Abbildung, nicht die Montageorientierung 
 | Kamera XCLK/PCLK/VSYNC/HREF | 38/41/17/18 | reserviert trotz unbenutzter Kamera |
 | Kamera D0…D7 | 45/47/48/46/42/40/39/21 | nicht als freie MIDI-Pins behandeln |
 | Kamera SCCB | 8/7 | gemeinsamer I²C-Bus |
-| UART TX/RX | Kandidaten GPIO43/44 | vor Verdrahtung Headerzuordnung bestätigen |
+| MIDI UART1 TX | GPIO44, `ESP_RXD`: V1 J8 Pin 27 / V2 J8 Pin 28 | M3: GPIO-Matrix; keine UART0-Bootmeldungen auf diesem Pin |
 
 Quellen: [Audio-Beispiel](https://github.com/waveshareteam/ESP32-S3-Touch-LCD-3.5/blob/main/Arduino/examples/01_audio_out/01_audio_out.ino), [SD-Beispiel](https://github.com/waveshareteam/ESP32-S3-Touch-LCD-3.5/blob/main/Arduino/examples/07_sd_card_test/07_sd_card_test.ino), [Kamera-Pins](https://docs.waveshare.com/ESP32-S3-Touch-LCD-3.5/Arduino).
 
-GPIO43/44 sind für eine spätere UART-Ausgabe vorgemerkt, **noch keine Verdrahtungsfreigabe**: Die grafische Netz-/Headerzuordnung und reale Zugänglichkeit im Gehäuse müssen vor M3 geprüft werden. UART0 kann Bootmeldungen ausgeben; spätere Verwendung von UART1 über GPIO-Matrix plus Ausgangsfreigabe prüfen. Native USB-Diagnose vermeidet Anwendungslogs auf der MIDI-UART. GPIO4 und nicht vollständig zugeordnete Interrupt-/Expanderleitungen werden ausdrücklich nicht als frei angenommen.
+M3 verwendet GPIO44 (`ESP_RXD`) als UART1 TX über die GPIO-Matrix. Die grafische Netz-/Headerzuordnung ist in beiden Schaltplänen geprüft: **V1 J8 Pin 27, V2 J8 Pin 28**. Die reale Zugänglichkeit und PCB-Revision im Gehäuse müssen vor der Verdrahtung am Benutzergerät geprüft werden. UART0 kann auf GPIO43 Bootmeldungen ausgeben; deshalb bleibt dieser Pin von MIDI getrennt. Native USB-Diagnose vermeidet Anwendungslogs auf der MIDI-UART. GPIO4 und nicht vollständig zugeordnete Interrupt-/Expanderleitungen werden ausdrücklich nicht als frei angenommen. Schaltung und Bauteile: [Meilenstein 3](milestone3.md).
 
 ## Schaltpläne und offene Prüfung
 
@@ -54,4 +54,4 @@ GPIO43/44 sind für eine spätere UART-Ausgabe vorgemerkt, **noch keine Verdraht
 
 Beide PDFs wurden über Textextraktion untersucht. Die Netzanordnung lässt sich daraus nicht überall sicher rekonstruieren; die vollständige visuelle Prüfung bleibt offen. Die implementierten Display-/Touch-Pins sind zusätzlich unmittelbar durch das offizielle Beispiel belegt. USB-C enthält CC-Pulldowns; USB-Host und dessen Versorgung sind kein Bestandteil dieses Meilensteins.
 
-Eine DIN-Schaltung samt Bauteilwerten und vollständigem Pin-Konfliktaudit folgt vor M3 anhand der MIDI Electrical Specification. Noch keine DIN-Buchse direkt mit ESP-GPIOs verbinden; dieses Repository enthält bisher nur den Displaytest.
+Die DIN-Schaltung und das Pin-Konfliktaudit sind in [Meilenstein 3](milestone3.md) dokumentiert. Keine DIN-Buchse direkt mit ESP-GPIOs verbinden; der vorgesehene Ausgang enthält einen 3,3-V-Puffer und die Widerstände der MIDI-Spezifikation.

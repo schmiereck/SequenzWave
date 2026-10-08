@@ -1,13 +1,13 @@
 # SequenzWave conventions
 
-- Current scope: milestone 2, 16-step sequencer with mock MIDI, adjustable brightness and user-requested settings persistence. No DIN output yet.
+- Current scope: milestone 3, UART1/DIN MIDI OUT on GPIO44 plus USB mock diagnostics. Physical DIN circuit and Volca test pending.
 - Read README.md and docs/hardware.md before changing board configuration.
 - Use PlatformIO, pinned dependencies, Arduino and LVGL 8.4. Never silently upgrade a major version.
 - GPIO definitions belong in src/hardware/BoardConfig.h. Confirm changes against the official schematic and examples, with source links.
 - Hardware and UI are separate. All LVGL calls run on the Arduino loop task.
 - SequencerEngine and PatternModel are plain C++ independent of Arduino/LVGL; keep host tests covering scheduling and note lifetimes.
 - MIDI scheduling uses a separate timing task/clock and bounded command queue, never UI frame timing. No dynamic allocation, logging or filesystem work in the MIDI timing path.
-- Future MidiOutput abstracts UART, debug/mock and optional USB transports. Never send synth CC automation; sequence data and sound remain separate.
+- MidiOutput abstracts UART and debug/mock transports; optional USB may follow. Never send synth CC automation; sequence data and sound remain separate.
 - Boot delays for device reset are acceptable; sequencer delays are not.
 - Native USB CDC is for diagnostics. Do not wait for a connected PC during startup.
 - Storage writes run only in the UI loop after a debounce; keep the NVS format versioned with checksum and recovery slot.

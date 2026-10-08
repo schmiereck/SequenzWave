@@ -2,7 +2,7 @@
 
 Standalone Touch-MIDI-Sequencer für das **Waveshare ESP32-S3-Touch-LCD-3.5-C**.
 
-**Meilenstein 1:** Display und Touch am Board bestätigt; Benutzer meldet zehn Minuten stabilen Betrieb am Netzteil. **Meilenstein 2:** 16-Step-Prototyp mit eigenständiger Timing-Engine und Mock-MIDI. Den aktuellen Prüfstand dokumentiert [docs/validation.md](docs/validation.md).
+**Meilenstein 1:** Display und Touch am Board bestätigt. **Meilenstein 2:** 16-Step-Prototyp mit eigener Timing-Engine, Helligkeit und NVS-Speicherung am Board bestätigt. **Meilenstein 3:** UART-MIDI OUT implementiert; DIN-Schaltung und Volca-Test stehen noch aus. Den Prüfstand dokumentiert [docs/validation.md](docs/validation.md).
 
 ## Bedienung
 
@@ -10,16 +10,16 @@ Standalone Touch-MIDI-Sequencer für das **Waveshare ESP32-S3-Touch-LCD-3.5-C**.
 - **BPM −/+**: 30–300 BPM, Startwert 120.
 - **Step antippen**, dann **Note −/+** (Halbton) oder **Oct −/+** (Oktave). MIDI-Noten 0–127; C4 = MIDI 60.
 - **Rest/Enable:** Step pausieren oder wieder aktivieren. Die Note bleibt erhalten.
-- **Settings:** Gate 5–100 %, Velocity 1–127 und Helligkeit 2–100 %. Ohne gespeicherten Wert startet die Helligkeit bei 10 %.
+- **Settings:** Gate 5–100 %, Velocity 1–127, MIDI-Kanal 1–16 und Helligkeit 2–100 %. Ohne gespeicherten Wert startet die Helligkeit bei 10 % und der Kanal bei 1.
 - Änderungen am Step werden beim nächsten Abspielen dieses Steps wirksam. Eine gerade klingende Note behält ihr ursprüngliches Note Off.
 - Ein Tempo-Wechsel setzt das nächste Step-Intervall ab dem Änderungszeitpunkt neu an. Start/Stop ist unabhängig von der Step-Auswahl.
-- Pattern, BPM und Helligkeit werden nach zwei Sekunden ohne weitere Änderung in NVS gespeichert. **Save** schreibt sofort; **Back** im Settings-Menü speichert ebenfalls sofort. Während „Saving...“ angezeigt wird, kann ein unmittelbarer Reset die letzte Änderung verlieren. Beim Neustart werden die letzten gültigen Werte geladen. Transport (Play/Stop) und ausgewählter Step werden nicht gespeichert. Noch kein elektrisches MIDI OUT.
+- Pattern, BPM, MIDI-Kanal und Helligkeit werden nach zwei Sekunden ohne weitere Änderung in NVS gespeichert. **Save** schreibt sofort; **Back** im Settings-Menü speichert ebenfalls sofort. Während „Saving...“ angezeigt wird, kann ein unmittelbarer Reset die letzte Änderung verlieren. Beim Neustart werden die letzten gültigen Werte geladen. Transport (Play/Stop) und ausgewählter Step werden nicht gespeichert.
 
-Die Mock-Ausgabe im USB-Monitor zeigt `MOCK t=… ON/OFF ch=1 note=… vel=…`. Der Zeitstempel kommt aus dem Sequencer-Task; die spätere USB-Ankunft ist keine Timingmessung. Optional lässt sich für Prüfungen `p` (Start) oder `s` (Stop) über den Monitor senden. Reguläre Bedienung erfolgt vollständig über Touch.
+Die USB-Diagnose spiegelt die UART-MIDI-Ereignisse als `MOCK t=… ON/OFF ch=… note=… vel=…`. Der Zeitstempel kommt aus dem Sequencer-Task; die spätere USB-Ankunft ist keine Timingmessung. Der UART-Ausgang liegt auf GPIO44 (`ESP_RXD`), **J8 Pin 27 bei V1 oder Pin 28 bei V2**, und benötigt die Schaltung aus [Meilenstein 3](docs/milestone3.md). Optional lässt sich für Prüfungen `p` (Start) oder `s` (Stop) über den Monitor senden. Reguläre Bedienung erfolgt vollständig über Touch.
 
 ## Helligkeit und Wärme
 
-Die Hintergrundbeleuchtung wird über GPIO6 mit 20-kHz-PWM geregelt. Der Regler zeigt das PWM-Tastverhältnis, keine kalibrierte Leuchtdichte. Der Benutzer meldet bei 10 % deutlich weniger Wärme als bei voller Helligkeit; eine Temperaturmessung liegt nicht vor. Die UI schläft zwischen Durchläufen etwa 5 ms, statt mit `yield()` ständig erneut zu laufen. Die Engine bleibt in einem separaten Task aktiv. CPU-Takt und Stromversorgung wurden nicht verändert. Bei 2 % könnte die Anzeige je nach Umgebungslicht schwer lesbar sein; den Regler gegebenenfalls wieder nach rechts schieben.
+Die Hintergrundbeleuchtung wird über GPIO6 mit 20-kHz-PWM geregelt. Der Regler zeigt das PWM-Tastverhältnis, keine kalibrierte Leuchtdichte. Der Benutzer meldet, dass das Display bei 6 % noch gut lesbar ist und das Gerät kühl bleibt; eine Temperaturmessung liegt nicht vor. Die UI schläft zwischen Durchläufen etwa 5 ms. Die Engine bleibt in einem separaten Task aktiv. CPU-Takt und Stromversorgung wurden nicht verändert.
 
 ## Build unter VS Code / PlatformIO
 
@@ -39,7 +39,7 @@ Die Konfiguration pinnt Espressif32 6.10.0, Arduino-ESP32 2.0.17, LVGL 8.4.0, Ar
 ## Flashen und Diagnose
 
 1. Boardetikett prüfen: **3.5 / 3.5-C**, nicht **3.5B**. Revision V1/V2 im [Hardwareprotokoll](docs/validation.md) eintragen.
-2. Board über USB-C-Datenkabel verbinden. Kein DIN-MIDI-Aufbau für diesen Test erforderlich.
+2. Board über USB-C-Datenkabel verbinden. Für reine Firmware- und UI-Tests ist kein DIN-MIDI-Aufbau erforderlich.
 3. Port mit `python -m platformio device list` ermitteln; unten `COMx` ersetzen.
 4. Build und Upload starten:
 
@@ -52,7 +52,7 @@ Nach einem erfolgreichen Build liegt das Image unter `.pio/build/waveshare_s3/fi
 
 Falls Upload nicht verbindet: BOOT gedrückt halten, RESET kurz drücken, BOOT loslassen; den möglicherweise geänderten COM-Port erneut bestimmen. Bei Übertragungsfehlern `upload_speed = 115200` versuchen. Monitor vor erneutem Upload schließen.
 
-Die App wartet nicht auf USB. Alle fünf Sekunden erscheint `UI alive` mit Touchstatus, PSRAM und freiem Heap oder ein konkreter `INIT ERROR`. Diese periodische Ausgabe ist bewusst auch nach spätem Öffnen des Monitors sichtbar. Ein erfolgreicher SPI-Start bestätigt noch keine physische LCD-Kommunikation.
+Die App wartet nicht auf USB. Alle fünf Sekunden erscheint `UI alive` mit Touchstatus, PSRAM, freiem Heap und `midi_drop` oder ein konkreter `INIT ERROR`. Diese periodische Ausgabe ist bewusst auch nach spätem Öffnen des Monitors sichtbar. Ein erfolgreicher SPI-Start bestätigt noch keine physische LCD-Kommunikation.
 
 ## Hardware-Abnahme
 
@@ -67,7 +67,7 @@ Die App wartet nicht auf USB. Alle fünf Sekunden erscheint `UI alive` mit Touch
 ## Architektur
 
 - `src/sequencer`: PatternModel und SequencerEngine, reines C++ ohne Arduino/LVGL. 64-Bit-Zeit in Mikrosekunden, absolute Step-Grenzen ohne aufsummierten Rundungsfehler.
-- `src/midi`: abstrakte MidiOutput-Schnittstelle für Note On/Off; derzeit ausschließlich Mock.
+- `src/midi`: abstrakte MidiOutput-Schnittstelle für Note On/Off; UART1-Ausgang mit fester Bytequeue und USB-Diagnosespiegel.
 - `src/app`: separater FreeRTOS-Task auf Core 0, Priorität 3, statische Befehls-/Ereignisqueues und Zustandskopie. Keine Heap-Allokation oder USB-Ausgabe im Timingpfad.
 - `src/hardware`: Display, Touch, LVGL-Port und Backlight-PWM.
 - `src/storage`: versioniertes NVS-Format mit zwei Prüfsummen-Slots; schreibt nur aus dem UI-Loop.
@@ -77,10 +77,9 @@ Details und Timinggrenzen: [Meilenstein 2](docs/milestone2.md).
 
 ## Nächste Schritte
 
-1. Vierergruppierung und 2-%-Helligkeit am Board bestätigen; Save/Reset für Pattern und Einstellungen ist bestätigt.
-2. Standalone-Lauf mit Wiedergabe und Wärmevergleich bei reduzierter Helligkeit.
-3. Danach M3: UART-Pins und DIN-Schaltung abschließend prüfen, elektrische Ausgabe implementieren und messen.
-4. M4 erweitert die einfache NVS-Speicherung um mehrere Patterns, Kopieren/Löschen und Fehlerbehandlung.
+1. PCB-Revision und Zugang zu J8 im Gehäuse feststellen; MIDI-OUT-Schaltung aus [Meilenstein 3](docs/milestone3.md) aufbauen.
+2. DIN-Ausgang elektrisch prüfen und mit dem Volca FM Note On/Off, Kanal und Gate testen; Timing messen.
+3. Danach erweitert M4 die einfache NVS-Speicherung um mehrere Patterns, Kopieren/Löschen und Fehlerbehandlung.
 
 Weitere Details: [Hardware und Quellen](docs/hardware.md), [Entscheidungen](docs/decisions.md), [Prüfprotokoll](docs/validation.md), [Projektkonventionen](AGENTS.md).
 

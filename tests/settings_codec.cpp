@@ -6,6 +6,7 @@ int main() {
     storage::Data original;
     original.bpm = 137;
     original.brightness = 2;
+    original.channel = 16;
     original.pattern.steps[0].note = 127;
     original.pattern.steps[0].velocity = 1;
     original.pattern.steps[0].gate = 5;
@@ -17,7 +18,7 @@ int main() {
     storage::Data restored;
     uint32_t generation = 0;
     assert(storage::decode(old, restored, generation));
-    assert(generation == 0xffffffffU && restored.bpm == 137 && restored.brightness == 2);
+    assert(generation == 0xffffffffU && restored.bpm == 137 && restored.brightness == 2 && restored.channel == 16);
     assert(restored.pattern.steps[0].note == 127 && !restored.pattern.steps[0].enabled);
     assert(restored.pattern.steps[15].note == 0 && restored.pattern.steps[15].gate == 100);
 
@@ -33,6 +34,23 @@ int main() {
     invalid = original;
     invalid.brightness = 0;
     assert(!storage::decode(storage::encode(invalid, 2), restored, generation));
+    invalid = original;
+    invalid.channel = 0;
+    assert(!storage::decode(storage::encode(invalid, 2), restored, generation));
+
+    // Existing V1 NVS slots survive the firmware update and default to channel 1.
+    auto legacy = old;
+    legacy[4] = 1;
+    legacy[10] &= 1;
+    uint32_t crc = 0xffffffffU;
+    for (size_t i = 0; i < storage::kRecordSize - 4; ++i) {
+        crc ^= legacy[i];
+        for (unsigned bit = 0; bit < 8; ++bit)
+            crc = (crc >> 1) ^ (0xedb88320U & (0U - (crc & 1U)));
+    }
+    crc = ~crc;
+    for (unsigned i = 0; i < 4; ++i) legacy[76 + i] = crc >> (8 * i);
+    assert(storage::decode(legacy, restored, generation) && restored.channel == 1);
 
     auto recent = original;
     recent.bpm = 140;

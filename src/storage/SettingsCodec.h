@@ -10,6 +10,7 @@ struct Data {
     sequencer::Pattern pattern = sequencer::initialPattern();
     uint16_t bpm = 120;
     uint8_t brightness = 10;
+    uint8_t channel = 1;
 };
 using Record = std::array<uint8_t, kRecordSize>;
 Record encode(const Data& data, uint32_t generation);

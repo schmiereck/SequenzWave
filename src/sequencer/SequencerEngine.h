@@ -20,6 +20,7 @@ public:
     void update(uint64_t now);
     bool setStep(unsigned index, Step step);
     void setTempo(uint16_t bpm, uint64_t now);
+    void setChannel(uint8_t channel, uint64_t now);
     Status status() const { return status_; }
 
 private:
@@ -33,6 +34,8 @@ private:
     uint64_t ordinal_ = 0;
     uint64_t offAt_ = 0;
     uint8_t activeNote_ = 0;
+    uint8_t activeChannel_ = 1;
+    uint8_t channel_ = 1;
     bool noteActive_ = false;
 };
 }  // namespace sequencer

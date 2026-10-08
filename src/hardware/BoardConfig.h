@@ -9,6 +9,9 @@ constexpr int kLcdMiso = 2;
 constexpr int kLcdClock = 5;
 constexpr int kLcdDc = 3;
 constexpr int kBacklight = 6;
+// ESP_RXD / GPIO44: J8 pin 27 on V1, pin 28 on V2. UART1 TX; no UART0 boot text.
+constexpr int kMidiTx = 44;
+constexpr uint32_t kMidiBaud = 31250;
 constexpr uint8_t kBacklightPwmChannel = 0;
 constexpr uint32_t kBacklightPwmHz = 20000;
 constexpr uint8_t kDefaultBrightness = 10;

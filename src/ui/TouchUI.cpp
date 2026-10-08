@@ -16,11 +16,13 @@ lv_obj_t* footer;
 lv_obj_t* settings;
 lv_obj_t* gateText;
 lv_obj_t* velocityText;
+lv_obj_t* channelText;
 lv_obj_t* lightText;
 storage::Data saved;
 sequencer::Pattern& pattern = saved.pattern;
 unsigned selected = 0;
 uint16_t& bpm = saved.bpm;
+uint8_t& channel = saved.channel;
 int8_t shownStep = -2;
 bool shownPlaying = false;
 storage::SaveStatus shownSaveStatus = storage::SaveStatus::Error;
@@ -65,6 +67,7 @@ void showEditor() {
     }
     if (gateText) lv_label_set_text_fmt(gateText, "Gate %u%%", step.gate);
     if (velocityText) lv_label_set_text_fmt(velocityText, "Velocity %u", step.velocity);
+    if (channelText) lv_label_set_text_fmt(channelText, "MIDI channel %u", channel);
 }
 
 bool submit(app::Command command) {
@@ -137,6 +140,19 @@ void closeSettings(lv_event_t*) {
     storage::saveNow();
     lv_obj_add_flag(settings, LV_OBJ_FLAG_HIDDEN);
 }
+void midiChannelChanged(lv_event_t* event) {
+    const int change = static_cast<int>(reinterpret_cast<intptr_t>(lv_event_get_user_data(event)));
+    const int next = channel + change;
+    if (next < 1 || next > 16) return;
+    app::Command command;
+    command.action = app::Action::Channel;
+    command.value = static_cast<uint16_t>(next);
+    if (submit(command)) {
+        channel = static_cast<uint8_t>(next);
+        lv_label_set_text_fmt(channelText, "MIDI channel %u", channel);
+        storage::schedule(saved);
+    }
+}
 void saveSettings(lv_event_t*) {
     storage::schedule(saved);
     storage::saveNow();
@@ -179,7 +195,7 @@ void create(bool touchAvailable, const storage::Data& loaded) {
     restText = lv_obj_get_child(rest, 0);
     button(screen, "Settings", 10, 266, 100, openSettings);
     button(screen, "Save", 118, 266, 72, saveSettings);
-    footer = label(screen, touchAvailable ? "Pattern 01 | Mock MIDI" : "ERROR: Touch not detected", 202, 280);
+    footer = label(screen, touchAvailable ? "Pattern 01 | UART MIDI" : "ERROR: Touch not detected", 202, 280);
 
     // Modal settings page: generous finger targets; transport continues underneath.
     settings = lv_obj_create(screen);
@@ -191,7 +207,7 @@ void create(bool touchAvailable, const storage::Data& loaded) {
     lv_obj_set_style_bg_color(settings, lv_color_hex(0x151c28), 0);
     lv_obj_set_style_text_color(settings, lv_color_hex(0xf1f5fa), 0);
     lv_obj_clear_flag(settings, LV_OBJ_FLAG_SCROLLABLE);
-    label(settings, "Selected step / Display", 16, 14);
+    label(settings, "Step / MIDI / Display", 16, 14);
     button(settings, "Back", 368, 6, 96, closeSettings);
     gateText = label(settings, "", 16, 76);
     button(settings, "-", 220, 60, 80, edit, -2000);
@@ -199,16 +215,19 @@ void create(bool touchAvailable, const storage::Data& loaded) {
     velocityText = label(settings, "", 16, 134);
     button(settings, "-", 220, 118, 80, edit, -3000);
     button(settings, "+", 320, 118, 80, edit, 3000);
-    lightText = label(settings, "", 16, 190);
+    channelText = label(settings, "", 16, 190);
+    button(settings, "-", 220, 174, 80, midiChannelChanged, -1);
+    button(settings, "+", 320, 174, 80, midiChannelChanged, 1);
+    lightText = label(settings, "", 16, 248);
     lv_label_set_text_fmt(lightText, "Brightness %u%%", hardware::brightness());
     auto* slider = lv_slider_create(settings);
-    lv_obj_set_pos(slider, 30, 235);
-    lv_obj_set_size(slider, 420, 24);
+    lv_obj_set_pos(slider, 220, 248);
+    lv_obj_set_size(slider, 230, 24);
     lv_obj_set_ext_click_area(slider, 12);
     lv_slider_set_range(slider, 2, 100);
     lv_slider_set_value(slider, hardware::brightness(), LV_ANIM_OFF);
     lv_obj_add_event_cb(slider, lightChanged, LV_EVENT_VALUE_CHANGED, nullptr);
-    label(settings, "Auto-save: 2 s idle | Back saves now", 16, 288);
+    label(settings, "Auto-save 2 s | Back saves", 16, 288);
     lv_obj_add_flag(settings, LV_OBJ_FLAG_HIDDEN);
     showEditor();
 }
@@ -220,9 +239,9 @@ void refresh() {
     const auto save = storage::status();
     if (save != shownSaveStatus) {
         shownSaveStatus = save;
-        const char* message = "Pattern 01 | Mock MIDI | Defaults";
-        if (save == storage::SaveStatus::Pending) message = "Pattern 01 | Mock MIDI | Saving...";
-        else if (save == storage::SaveStatus::Saved) message = "Pattern 01 | Mock MIDI | Saved";
+        const char* message = "Pattern 01 | UART MIDI | Defaults";
+        if (save == storage::SaveStatus::Pending) message = "Pattern 01 | UART MIDI | Saving...";
+        else if (save == storage::SaveStatus::Saved) message = "Pattern 01 | UART MIDI | Saved";
         else if (save == storage::SaveStatus::Error) message = "SAVE ERROR | Check serial log";
         lv_label_set_text(footer, message);
     }

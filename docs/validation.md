@@ -1,6 +1,16 @@
 # Prüfprotokoll – Meilensteine 1 und 2
 
-Datum: 2026-10-08. **Meilenstein 1: Benutzer meldet stabilen Standalone-Betrieb und gibt M2 frei. Meilenstein 2: Build und Mock-Lauf am Board bestätigt; neue Touch-Bedienung noch abzunehmen.**
+Datum: 2026-10-08. **Meilenstein 1 und 2: Benutzer meldet stabilen Betrieb und bestätigt die Bedienung. Meilenstein 3: Firmware-/Hostprüfung läuft; elektrischer DIN- und Volca-Test ausstehend.**
+
+## Meilenstein 3: UART-MIDI, vorläufig
+
+Der Benutzer bestätigt die Trennung der Vierergruppen als gut sichtbar und nicht störend. Bei 6 % Helligkeit bleibt die Anzeige laut Benutzer gut lesbar und das Gerät kühl; es liegt keine Temperatur- oder Strommessung vor.
+
+Die V1- und V2-Schaltpläne wurden visuell auf J8 und die GPIO-Matrix geprüft: GPIO44 ist `ESP_RXD`, **V1 J8 Pin 27 / V2 J8 Pin 28**, ohne Belegung durch Display, Touch, Kamera, SD oder Audio. Der Ausgang verwendet UART1 mit 31.250 Baud, 8N1 und eine feste Bytequeue. Die Schaltung gemäß MIDI CA-033 ist in [milestone3.md](milestone3.md) dokumentiert. PCB-Revision und Zugang zu J8 beim Benutzergerät bleiben zu bestätigen. Die MIDI-Hardware ist nicht angeschlossen; elektrische Übertragung und Volca-Reaktion sind noch ungetestet.
+
+Firmware-Build mit `.\.venv\Scripts\python.exe -m platformio run -e waveshare_s3`: **SUCCESS**, RAM 111.724/327.680 Bytes, App-Flash 540.661/3.145.728 Bytes. `.\.venv\Scripts\python.exe -m platformio check -e waveshare_s3 --fail-on-defect high`: **PASSED**, 0 HIGH, dieselben 11 MEDIUM-Warnungen in Fremdbibliotheken und zwei Warnungen zur Makroextraktion. `python scripts/check_config.py` und Host-Tests für Touch, Sequencer, Speicherformat einschließlich V1-Migration sowie MIDI-Bytekodierung (`g++ -std=c++11 -Wall -Wextra -Werror -Isrc ...`) bestanden. `platformio run -e waveshare_s3 -t upload --upload-port COM3`: **SUCCESS**, Flash-Hash verifiziert.
+
+USB-Startprüfung nach Upload: `UI alive | touch=ready | PSRAM_heap=8386279 | heap=271132 | nvs=loaded | late_us=0 | skipped=0 | dropped=0 | midi_drop=0`. Ein kurzer Start/Stop-Lauf über die Debugschnittstelle erzeugte 29 Note-On- und 29 Note-Off-Logs; Status `late_us=903`, `skipped=0`, `midi_drop=0`. Das prüft die Aufrufe im Sequencer und die UART-Queue auf dem Board, **nicht** den elektrischen Pegel oder die tatsächlichen seriellen Bits am GPIO/DIN-Port. Die neue Settings-Bedienung und Persistenz des MIDI-Kanals wurden noch nicht durch Touch/Reset am Gerät bestätigt.
 
 ## Nachtrag: Vierergruppen, dunklere Anzeige und NVS
 
