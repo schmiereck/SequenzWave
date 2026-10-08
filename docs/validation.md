@@ -2,6 +2,16 @@
 
 Datum: 2026-10-08. **Firmware-Build bestätigt; Hardware-Abnahme offen.**
 
+## Bestätigte Bedienprüfung
+
+Der Benutzer bestätigt am 2026-10-08 für die Firmware aus Commit `1b619ba`:
+
+- „MIDI Sequencer“, alle 16 Steps und Play werden im Querformat dargestellt.
+- Antippen der äußeren Steps 1, 8, 9 und 16 markiert jeweils den richtigen Step.
+- Die Schaltfläche wechselt beim Antippen korrekt zwischen Play und Stop.
+
+Damit sind die grundlegende Displaydarstellung, die Touch-Transformation an den vier äußeren Steps und die Transport-Testschaltfläche am realen Gerät bestätigt. Noch nicht ausdrücklich geprüft: alle übrigen Steps und Rand-/Loslassverhalten, zehn Minuten Dauerbetrieb sowie Kaltstart am USB-Netzteil ohne PC. Meilenstein 1 bleibt bis zur vollständigen Abnahmecheckliste offen; Meilenstein 2 wurde nicht begonnen.
+
 ## Erster Hardwarestart auf COM3
 
 Der Benutzer bestätigt das Boardetikett ESP32-S3-Touch-LCD-3.5-C mit FT6336, ST7796, TCA9554 und 8 MB PSRAM sowie die Zuordnung zu COM3. PCB-Revision weiterhin offen. Esptool identifiziert ESP32-S3 Chiprevision v0.2; dies ist nicht die PCB-Revision.
