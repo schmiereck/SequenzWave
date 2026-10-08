@@ -19,7 +19,7 @@ void loop() {
     if (now - lastReport >= 5000) {
         lastReport = now;
         if (startupError) Serial.printf("INIT ERROR: %s\n", startupError);
-        else Serial.printf("UI alive | touch=%s | PSRAM=%u | heap=%u\n",
+        else Serial.printf("UI alive | touch=%s | PSRAM_heap=%u | heap=%u\n",
             hardware::touchAvailable() ? "ready" : "MISSING",
             ESP.getPsramSize(), ESP.getFreeHeap());
     }

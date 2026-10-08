@@ -2,7 +2,7 @@
 
 ## Variante und Quellenlage
 
-Die Bestellung mit Gehäuse passt zur Familie **ESP32-S3-Touch-LCD-3.5-C**. Das Etikett des realen Boards wurde nicht gelesen; SKU und Revision sind deshalb nicht abschließend festgestellt. Waveshare bezeichnet V1 und V2 als softwarekompatibel. V2 ergänzt unter anderem SD-Erkennung und überarbeitet Stromversorgung/PCB. Nicht mit **3.5B** verwechseln. [Herstellerübersicht](https://docs.waveshare.com/ESP32-S3-Touch-LCD-3.5)
+Der Benutzer bestätigt am Etikett **ESP32-S3-Touch-LCD-3.5-C**, FT6336, ST7796, 320×480, 8 MB PSRAM und TCA9554 sowie die Zuordnung zu COM3. Die PCB-Revision V1/V2 ist noch nicht abgelesen. Waveshare bezeichnet V1 und V2 als softwarekompatibel. V2 ergänzt unter anderem SD-Erkennung und überarbeitet Stromversorgung/PCB. Nicht mit **3.5B** verwechseln. [Herstellerübersicht](https://docs.waveshare.com/ESP32-S3-Touch-LCD-3.5)
 
 Bestätigte Familie: ESP32-S3R8, 8 MB PSRAM, 16 MB externer Flash, 320×480 IPS, ST7796 (SPI), FT6336 (I²C). Die 16-MB-Flash-Bauteilbezeichnung unterscheidet sich zwischen den Schaltplänen; deshalb keinen bestimmten Flashhersteller voraussetzen.
 

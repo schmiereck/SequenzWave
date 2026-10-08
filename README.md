@@ -2,7 +2,7 @@
 
 Standalone Touch-MIDI-Sequencer für das **Waveshare ESP32-S3-Touch-LCD-3.5**, zunächst Meilenstein 1.
 
-**Stand: Firmware erfolgreich gebaut; Hardware-Abnahme noch offen.** Build, Host-Test und Konfigurationsprüfung sind bestätigt. PlatformIO-Cppcheck meldet elf Warnungen in Fremdbibliotheken, keine Befunde hoher Schwere. Siehe [Prüfprotokoll](docs/validation.md). Noch nicht durch den Agenten geflasht.
+**Stand: Firmware erfolgreich gebaut; Hardware-Abnahme noch offen.** Build, Host-Test und Konfigurationsprüfung sind bestätigt. PlatformIO-Cppcheck meldet elf Warnungen in Fremdbibliotheken, keine Befunde hoher Schwere. Siehe [Prüfprotokoll](docs/validation.md). Auf COM3 geflasht; Start, Speicherprüfung und Touch-Erkennung bestätigt. Visuelle Prüfung und Touch-Bedienung noch offen.
 
 ## Enthalten
 
@@ -50,7 +50,7 @@ Die App wartet nicht auf USB. Alle fünf Sekunden erscheint `UI alive` mit Touch
 - Alle 16 Steps mehrfach berühren, besonders 1/8/9/16; Markierung und Auswahltext müssen übereinstimmen.
 - Play/Stop mehrfach betätigen: Beschriftung wechselt genau einmal pro Tap.
 - Finger loslassen und an Rändern bewegen: keine hängenbleibenden/versetzten Touch-Ereignisse.
-- PSRAM = 8388608 Bytes, Touch ready, stabiler Heap über mindestens 10 Minuten.
+- Physischer PSRAM = 8388608 Bytes (Startprüfung); `PSRAM_heap` ist wegen Verwaltungsdaten etwas kleiner. Touch ready und stabiler Heap über mindestens 10 Minuten prüfen.
 - Betrieb mit USB-Netzteil ohne PC; keine Startblockade.
 - Ergebnis, Boardrevision, Orientierung und verwendeten Commit in docs/validation.md eintragen.
 

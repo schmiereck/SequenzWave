@@ -7,6 +7,7 @@
 #include <TouchDrvFT6X36.hpp>
 #include <Wire.h>
 #include <lvgl.h>
+#include <esp32s3/spiram.h>
 
 namespace {
 Arduino_ESP32SPI bus(board::kLcdDc, board::kLcdCs, board::kLcdClock,
@@ -48,7 +49,9 @@ const char* begin() {
     static_assert(sizeof(lv_color_t) == 2, "RGB565 required");
     pinMode(board::kBacklight, OUTPUT);
     digitalWrite(board::kBacklight, LOW);
-    if (!psramFound() || ESP.getPsramSize() < 8U * 1024U * 1024U) {
+    // Arduino getPsramSize() reports heap capacity, reduced by allocator overhead.
+    // The IDF API reports the physical chip size required by this board profile.
+    if (!psramFound() || esp_spiram_get_size() != 8U * 1024U * 1024U) {
         return "8 MB OPI PSRAM not detected; check qio_opi configuration";
     }
     if (ESP.getFlashChipSize() != 16U * 1024U * 1024U) {

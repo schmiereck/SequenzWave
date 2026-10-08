@@ -2,6 +2,18 @@
 
 Datum: 2026-10-08. **Firmware-Build bestätigt; Hardware-Abnahme offen.**
 
+## Erster Hardwarestart auf COM3
+
+Der Benutzer bestätigt das Boardetikett ESP32-S3-Touch-LCD-3.5-C mit FT6336, ST7796, TCA9554 und 8 MB PSRAM sowie die Zuordnung zu COM3. PCB-Revision weiterhin offen. Esptool identifiziert ESP32-S3 Chiprevision v0.2; dies ist nicht die PCB-Revision.
+
+Upload mit `.\.venv\Scripts\python.exe -m platformio run -e waveshare_s3 -t upload --upload-port COM3` erfolgreich, geschriebene Daten per Hash verifiziert. Der erste Start zeigte einen Fehler in unserer PSRAM-Größenprüfung: Arduino `ESP.getPsramSize()` liefert Heap-Kapazität nach Verwaltungsabzug. Die Prüfung verwendet jetzt nach `psramFound()` die physische Größe aus `esp_spiram_get_size()` (Header des gepinnten ESP-IDF im Arduino-Core).
+
+Erneuter Build und Upload erfolgreich (17,90 Sekunden; RAM 105.684 Bytes, App-Flash 520.089 Bytes). Statische Analyse erneut PASSED mit denselben elf MEDIUM-Bibliothekswarnungen und derselben Einschränkung der Compiler-Makroextraktion. Host- und Konfigurationsprüfung erneut bestanden.
+
+Serieller Lesetest über 16 Sekunden nach Neustart: wiederholt `UI alive | touch=ready | PSRAM_heap=8386295 | heap=280148`. Damit sind physische 8-MB-PSRAM-/16-MB-Flash-Prüfung, Expanderinitialisierung, Touch-Erkennung und LVGL-Initialisierung durchlaufen. Der Heap bleibt in diesem kurzen Beobachtungsfenster gleich. Das ersetzt keinen Zehn-Minuten-Test. Displaydarstellung, reale Touch-Koordinaten und Standalone-Kaltstart müssen noch vom Benutzer geprüft werden.
+
+Die folgenden Abschnitte bleiben als Verlauf erhalten; Angaben zu noch nicht erfolgtem Flashen oder unbekanntem Modell sind durch diesen Abschnitt überholt.
+
 ## Aktueller Prüflauf nach Installation und Berechtigungsänderung
 
 - Benutzer-Erstbuild: SUCCESS in 309,89 Sekunden; Agent-Wiederholungsbuild: SUCCESS in 8,23 Sekunden.
