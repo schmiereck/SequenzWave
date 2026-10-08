@@ -1,12 +1,27 @@
 #include "TouchUI.h"
+#include "app/SequencerRuntime.h"
+#include "hardware/Hardware.h"
 #include <lvgl.h>
-#include <cstdint>
+#include <cstdio>
 
 namespace {
 lv_obj_t* steps[16];
+lv_obj_t* stepText[16];
 lv_obj_t* selection;
 lv_obj_t* playText;
-bool playing = false;
+lv_obj_t* bpmText;
+lv_obj_t* restText;
+lv_obj_t* footer;
+lv_obj_t* settings;
+lv_obj_t* gateText;
+lv_obj_t* velocityText;
+lv_obj_t* lightText;
+sequencer::Pattern pattern = sequencer::initialPattern();
+unsigned selected = 0;
+uint16_t bpm = 120;
+int8_t shownStep = -2;
+bool shownPlaying = false;
+uint32_t refreshedAt = 0;
 
 lv_obj_t* label(lv_obj_t* parent, const char* text, int x, int y) {
     auto* object = lv_label_create(parent);
@@ -15,21 +30,107 @@ lv_obj_t* label(lv_obj_t* parent, const char* text, int x, int y) {
     return object;
 }
 
-void selectStep(lv_event_t* event) {
-    auto* target = lv_event_get_target(event);
+lv_obj_t* button(lv_obj_t* parent, const char* text, int x, int y, int width,
+                 lv_event_cb_t callback, intptr_t action = 0) {
+    auto* object = lv_btn_create(parent);
+    lv_obj_set_pos(object, x, y);
+    lv_obj_set_size(object, width, 44);
+    lv_obj_set_style_pad_all(object, 2, 0);
+    auto* caption = lv_label_create(object);
+    lv_label_set_text(caption, text);
+    lv_obj_center(caption);
+    lv_obj_add_event_cb(object, callback, LV_EVENT_CLICKED, reinterpret_cast<void*>(action));
+    return object;
+}
+
+void noteName(uint8_t note, char* text, size_t size) {
+    const char* names[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    snprintf(text, size, "%s%d", names[note % 12], static_cast<int>(note / 12) - 1);
+}
+
+void showEditor() {
+    const auto& step = pattern.steps[selected];
+    char name[8];
+    noteName(step.note, name, sizeof(name));
+    lv_label_set_text_fmt(selection, "Step %02u: %s  |  Gate %u%%", selected + 1, name, step.gate);
+    lv_label_set_text(restText, step.enabled ? "Rest" : "Enable");
     for (unsigned i = 0; i < 16; ++i) {
-        if (steps[i] == target) {
-            lv_obj_add_state(steps[i], LV_STATE_CHECKED);
-            lv_label_set_text_fmt(selection, "Step %02u selected", i + 1);
-        } else {
-            lv_obj_clear_state(steps[i], LV_STATE_CHECKED);
-        }
+        noteName(pattern.steps[i].note, name, sizeof(name));
+        lv_label_set_text_fmt(stepText[i], "%02u\n%s", i + 1,
+            pattern.steps[i].enabled ? name : "--");
+        lv_obj_set_style_border_width(steps[i], i == selected ? 3 : 0, 0);
+    }
+    if (gateText) lv_label_set_text_fmt(gateText, "Gate %u%%", step.gate);
+    if (velocityText) lv_label_set_text_fmt(velocityText, "Velocity %u", step.velocity);
+}
+
+bool submit(app::Command command) {
+    const bool accepted = app::send(command);
+    lv_label_set_text(footer, accepted ? "Pattern 01 | Mock MIDI | not saved" : "Busy - please repeat the edit");
+    return accepted;
+}
+
+void selectStep(lv_event_t* event) {
+    selected = static_cast<unsigned>(reinterpret_cast<intptr_t>(lv_event_get_user_data(event)));
+    showEditor();
+}
+
+void play(lv_event_t*) {
+    app::Command command;
+    command.action = app::Action::Toggle;
+    submit(command);
+}
+
+void tempo(lv_event_t* event) {
+    const int change = static_cast<int>(reinterpret_cast<intptr_t>(lv_event_get_user_data(event)));
+    const int next = bpm + change;
+    if (next < 30 || next > 300) return;
+    app::Command command;
+    command.action = app::Action::Tempo;
+    command.value = static_cast<uint16_t>(next);
+    if (submit(command)) {
+        bpm = command.value;
+        lv_label_set_text_fmt(bpmText, "%u BPM", bpm);
     }
 }
 
-void togglePlay(lv_event_t*) {
-    playing = !playing;
-    lv_label_set_text(playText, playing ? "Stop" : "Play");
+void edit(lv_event_t* event) {
+    const int action = static_cast<int>(reinterpret_cast<intptr_t>(lv_event_get_user_data(event)));
+    auto next = pattern.steps[selected];
+    if (action == 1000) next.enabled = !next.enabled;
+    else if (action == 2000 || action == -2000) {
+        const int value = next.gate + (action > 0 ? 5 : -5);
+        if (value < 5 || value > 100) return;
+        next.gate = static_cast<uint8_t>(value);
+    } else if (action == 3000 || action == -3000) {
+        const int value = next.velocity + (action > 0 ? 1 : -1);
+        if (value < 1 || value > 127) return;
+        next.velocity = static_cast<uint8_t>(value);
+    } else {
+        const int value = next.note + action;
+        if (value < 0 || value > 127) return;
+        next.note = static_cast<uint8_t>(value);
+    }
+    app::Command command;
+    command.action = app::Action::Edit;
+    command.value = selected;
+    command.step = next;
+    if (submit(command)) {
+        pattern.steps[selected] = next;
+        showEditor();
+    }
+}
+
+void lightChanged(lv_event_t* event) {
+    hardware::setBrightness(static_cast<uint8_t>(lv_slider_get_value(lv_event_get_target(event))));
+    lv_label_set_text_fmt(lightText, "Brightness %u%%", hardware::brightness());
+}
+void closeSettings(lv_event_t*) {
+    lv_obj_add_flag(settings, LV_OBJ_FLAG_HIDDEN);
+}
+void openSettings(lv_event_t*) {
+    showEditor();
+    lv_obj_clear_flag(settings, LV_OBJ_FLAG_HIDDEN);
 }
 }  // namespace
 
@@ -39,34 +140,76 @@ void create(bool touchAvailable) {
     lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_bg_color(screen, lv_color_hex(0x151c28), 0);
     lv_obj_set_style_text_color(screen, lv_color_hex(0xf1f5fa), 0);
-    auto* title = label(screen, "MIDI Sequencer", 12, 12);
-    lv_obj_set_style_text_font(title, &lv_font_montserrat_20, 0);
-    label(screen, "Pattern 01", 12, 47);
-    label(screen, "120 BPM", 190, 47);
-    auto* play = lv_btn_create(screen);
-    lv_obj_set_pos(play, 350, 12);
-    lv_obj_set_size(play, 118, 52);
-    playText = lv_label_create(play);
-    lv_label_set_text(playText, "Play");
-    lv_obj_center(playText);
-    lv_obj_add_event_cb(play, togglePlay, LV_EVENT_CLICKED, nullptr);
+    label(screen, "MIDI Sequencer", 10, 5);
+    bpmText = label(screen, "120 BPM", 178, 30);
+    button(screen, "-", 120, 20, 44, tempo, -1);
+    button(screen, "+", 258, 20, 44, tempo, 1);
+    auto* transport = button(screen, "Play", 368, 12, 102, play);
+    playText = lv_obj_get_child(transport, 0);
 
     for (unsigned i = 0; i < 16; ++i) {
-        steps[i] = lv_btn_create(screen);
-        lv_obj_set_pos(steps[i], 12 + (i % 8) * 58, 86 + (i / 8) * 66);
-        lv_obj_set_size(steps[i], 50, 58);
+        steps[i] = button(screen, "", 10 + (i % 8) * 58, 76 + (i / 8) * 54,
+                          52, selectStep, i);
         lv_obj_set_style_bg_color(steps[i], lv_color_hex(0x344158), 0);
-        lv_obj_set_style_bg_color(steps[i], lv_color_hex(0x007e91), LV_STATE_CHECKED);
-        lv_obj_set_style_border_width(steps[i], 3, LV_STATE_CHECKED);
-        lv_obj_set_style_border_color(steps[i], lv_color_hex(0x72eddf), LV_STATE_CHECKED);
-        auto* number = lv_label_create(steps[i]);
-        lv_label_set_text_fmt(number, "%02u", i + 1);
-        lv_obj_center(number);
-        lv_obj_add_event_cb(steps[i], selectStep, LV_EVENT_CLICKED, nullptr);
+        lv_obj_set_style_border_color(steps[i], lv_color_hex(0x72eddf), 0);
+        stepText[i] = lv_obj_get_child(steps[i], 0);
     }
-    lv_obj_add_state(steps[0], LV_STATE_CHECKED);
-    selection = label(screen, "Step 01 selected", 12, 228);
-    label(screen, touchAvailable ? "Touch ready - tap a step" : "ERROR: FT6336 touch not detected", 12, 258);
-    label(screen, "UI test only | MIDI off | Play has no timing", 12, 292);
+    selection = label(screen, "", 10, 187);
+    button(screen, "Oct -", 10, 212, 82, edit, -12);
+    button(screen, "Note -", 102, 212, 82, edit, -1);
+    button(screen, "Note +", 194, 212, 82, edit, 1);
+    button(screen, "Oct +", 286, 212, 82, edit, 12);
+    auto* rest = button(screen, "Rest", 378, 212, 92, edit, 1000);
+    restText = lv_obj_get_child(rest, 0);
+    button(screen, "Settings", 10, 266, 100, openSettings);
+    footer = label(screen, touchAvailable ? "Pattern 01 | Mock MIDI | not saved" : "ERROR: Touch not detected", 120, 280);
+
+    // Modal settings page: generous finger targets; transport continues underneath.
+    settings = lv_obj_create(screen);
+    lv_obj_set_pos(settings, 0, 0);
+    lv_obj_set_size(settings, 480, 320);
+    lv_obj_set_style_pad_all(settings, 0, 0);
+    lv_obj_set_style_border_width(settings, 0, 0);
+    lv_obj_set_style_radius(settings, 0, 0);
+    lv_obj_set_style_bg_color(settings, lv_color_hex(0x151c28), 0);
+    lv_obj_set_style_text_color(settings, lv_color_hex(0xf1f5fa), 0);
+    lv_obj_clear_flag(settings, LV_OBJ_FLAG_SCROLLABLE);
+    label(settings, "Selected step / Display", 16, 14);
+    button(settings, "Back", 368, 6, 96, closeSettings);
+    gateText = label(settings, "", 16, 76);
+    button(settings, "-", 220, 60, 80, edit, -2000);
+    button(settings, "+", 320, 60, 80, edit, 2000);
+    velocityText = label(settings, "", 16, 134);
+    button(settings, "-", 220, 118, 80, edit, -3000);
+    button(settings, "+", 320, 118, 80, edit, 3000);
+    lightText = label(settings, "", 16, 190);
+    lv_label_set_text_fmt(lightText, "Brightness %u%%", hardware::brightness());
+    auto* slider = lv_slider_create(settings);
+    lv_obj_set_pos(slider, 30, 235);
+    lv_obj_set_size(slider, 420, 24);
+    lv_obj_set_ext_click_area(slider, 12);
+    lv_slider_set_range(slider, 10, 100);
+    lv_slider_set_value(slider, hardware::brightness(), LV_ANIM_OFF);
+    lv_obj_add_event_cb(slider, lightChanged, LV_EVENT_VALUE_CHANGED, nullptr);
+    label(settings, "Settings reset on restart | MIDI channel 1", 16, 288);
+    lv_obj_add_flag(settings, LV_OBJ_FLAG_HIDDEN);
+    showEditor();
+}
+
+void refresh() {
+    if (lv_tick_elaps(refreshedAt) < 30) return;
+    refreshedAt = lv_tick_get();
+    const auto state = app::snapshot();
+    if (state.transport.playing != shownPlaying) {
+        shownPlaying = state.transport.playing;
+        lv_label_set_text(playText, shownPlaying ? "Stop" : "Play");
+    }
+    if (state.transport.step != shownStep) {
+        shownStep = state.transport.step;
+        for (unsigned i = 0; i < 16; ++i) {
+            lv_obj_set_style_bg_color(steps[i], lv_color_hex(
+                static_cast<int>(i) == shownStep ? 0x986600 : 0x344158), 0);
+        }
+    }
 }
 }  // namespace ui

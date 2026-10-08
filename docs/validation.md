@@ -1,6 +1,26 @@
-# Prüfprotokoll – Meilenstein 1
+# Prüfprotokoll – Meilensteine 1 und 2
 
-Datum: 2026-10-08. **Firmware-Build bestätigt; Hardware-Abnahme offen.**
+Datum: 2026-10-08. **Meilenstein 1: Benutzer meldet stabilen Standalone-Betrieb und gibt M2 frei. Meilenstein 2: Build und Mock-Lauf am Board bestätigt; neue Touch-Bedienung noch abzunehmen.**
+
+## Meilenstein 2 und Helligkeit
+
+Der Benutzer meldet zehn Minuten stabilen Betrieb am Netzteil und hat das Board wieder am PC angeschlossen. Erwärmung wurde subjektiv beobachtet; keine Temperaturmessung. Helligkeitsregelung ergänzt (GPIO6, 20-kHz-LEDC-PWM, 10–100 %, Standard 40 %). UI-Loop gibt jetzt etwa 5 ms an Idle ab. Ob das Gerät dadurch spürbar kühler wird, ist noch nicht bestätigt.
+
+Implementiert: Pattern mit 16 Steps, 30–300 BPM, Start/Stop, Noten-/Oktavwahl, Rest, Gate, Velocity, Lauflicht, separate Sequencer-Aufgabe und abstrakte Mock-MIDI-Ausgabe. Keine DIN-Ausgabe und keine Speicherung.
+
+Prüfungen:
+
+- C++11-Engine-Test mit `-Wall -Wextra -Werror`: bestanden; einschließlich 10.000 Steps bei 137 BPM, Gate/Rest, Tempo, Stop, Edits aktiver Noten und längeren Scheduler-Aussetzern.
+- Bestehender Touch-Host-Test und Konfigurationsprüfung: bestanden.
+- Echter Firmware-Build: SUCCESS; RAM 110.956 Bytes, App-Flash ca. 510 kB.
+- PlatformIO-Cppcheck: PASSED, unverändert elf MEDIUM-Bibliothekswarnungen, keine HIGH-Befunde. Einschränkung durch nicht extrahierte Toolchain-Defines bleibt bestehen.
+- Upload auf bestätigtes Board COM3: SUCCESS, Hashprüfung bestanden.
+- `scripts/serial_smoke.py --port COM3`: 65 ON/OFF-Paare bei Default-Pattern und 120 BPM; Note Off für letzte Note nach Stop bestätigt. Gemessene Step-Abstände jeweils 125.000 µs; normale Gates 94.000–94.002 µs (Soll 93.750 µs, Task-Raster 1 ms).
+- Boardstatus im Test: `touch=ready`, `heap=274084`, `late_us=0`, `skipped=0`, `dropped=0`.
+
+Diese kurze Messung verwendet Zeitstempel aus dem Mock-Task, nicht USB-Ankunftszeiten oder elektrische MIDI-Messung. Sie belegt keine allgemeine Jittergrenze. Kein Temperaturvergleich durchgeführt. UI-Abnahme für M2 sowie Standalone-Wiedergabe/Langzeitlauf bleiben offen.
+
+## Historie Meilenstein 1 (damaliger Stand)
 
 ## Bestätigte Bedienprüfung
 
@@ -10,7 +30,7 @@ Der Benutzer bestätigt am 2026-10-08 für die Firmware aus Commit `1b619ba`:
 - Antippen der äußeren Steps 1, 8, 9 und 16 markiert jeweils den richtigen Step.
 - Die Schaltfläche wechselt beim Antippen korrekt zwischen Play und Stop.
 
-Damit sind die grundlegende Displaydarstellung, die Touch-Transformation an den vier äußeren Steps und die Transport-Testschaltfläche am realen Gerät bestätigt. Noch nicht ausdrücklich geprüft: alle übrigen Steps und Rand-/Loslassverhalten, zehn Minuten Dauerbetrieb sowie Kaltstart am USB-Netzteil ohne PC. Meilenstein 1 bleibt bis zur vollständigen Abnahmecheckliste offen; Meilenstein 2 wurde nicht begonnen.
+Damit waren die grundlegende Displaydarstellung, die Touch-Transformation an den vier äußeren Steps und die Transport-Testschaltfläche am realen Gerät bestätigt. Später meldete der Benutzer zehn Minuten stabilen Betrieb am Netzteil und gab Meilenstein 2 frei. Die übrigen Steps und Rand-/Loslassverhalten wurden nicht einzeln protokolliert.
 
 ## Erster Hardwarestart auf COM3
 

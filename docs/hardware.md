@@ -14,7 +14,7 @@ Bestätigte Familie: ESP32-S3R8, 8 MB PSRAM, 16 MB externer Flash, 320×480 IPS,
 | LCD MISO | GPIO2 | SPI |
 | LCD SCLK | GPIO5 | SPI, 40 MHz als Startwert |
 | LCD D/C | GPIO3 | Strap-Pin, vorhandene Boardbeschaltung beachten |
-| LCD Backlight | GPIO6 | HIGH = an |
+| LCD Backlight | GPIO6 | aktiv HIGH; M2: LEDC 20 kHz, 8 Bit, Kanal 0 |
 | I²C SDA / SCL | GPIO8 / GPIO7 | geteilter Boardbus, 400 kHz |
 | LCD Reset | TCA9554 P1, Adresse 0x20 | kein ESP-GPIO |
 | LCD CS | kein softwaregesteuerter GPIO | Referenz benutzt -1 |

@@ -1,12 +1,12 @@
 # SequenzWave conventions
 
-- Current scope: milestone 1, board bring-up and LVGL test UI only.
+- Current scope: milestone 2, 16-step sequencer with mock MIDI and adjustable brightness. No DIN output or persistence yet.
 - Read README.md and docs/hardware.md before changing board configuration.
 - Use PlatformIO, pinned dependencies, Arduino and LVGL 8.4. Never silently upgrade a major version.
 - GPIO definitions belong in src/hardware/BoardConfig.h. Confirm changes against the official schematic and examples, with source links.
 - Hardware and UI are separate. All LVGL calls run on the Arduino loop task.
-- Future SequencerEngine and PatternModel must be plain C++ independent of Arduino/LVGL.
-- Future MIDI scheduling must use a separate timing task/clock and bounded command queue, never UI frame timing. No dynamic allocation, logging or filesystem work in the MIDI timing path.
+- SequencerEngine and PatternModel are plain C++ independent of Arduino/LVGL; keep host tests covering scheduling and note lifetimes.
+- MIDI scheduling uses a separate timing task/clock and bounded command queue, never UI frame timing. No dynamic allocation, logging or filesystem work in the MIDI timing path.
 - Future MidiOutput abstracts UART, debug/mock and optional USB transports. Never send synth CC automation; sequence data and sound remain separate.
 - Boot delays for device reset are acceptable; sequencer delays are not.
 - Native USB CDC is for diagnostics. Do not wait for a connected PC during startup.

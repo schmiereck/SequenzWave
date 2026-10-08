@@ -1,15 +1,25 @@
 # SequenzWave
 
-Standalone Touch-MIDI-Sequencer für das **Waveshare ESP32-S3-Touch-LCD-3.5**, zunächst Meilenstein 1.
+Standalone Touch-MIDI-Sequencer für das **Waveshare ESP32-S3-Touch-LCD-3.5-C**.
 
-**Stand: Firmware gebaut, geflasht und grundlegende Bedienung am Gerät bestätigt.** Der Benutzer bestätigt Querformat-Darstellung, Auswahl der Steps 1/8/9/16 und Play/Stop. Build, Host-Test, Konfigurationsprüfung und Speicherinitialisierung sind erfolgreich. PlatformIO-Cppcheck meldet elf Warnungen in Fremdbibliotheken, keine Befunde hoher Schwere. Langzeittest und vollständige Hardware-Abnahme bleiben offen; siehe [Prüfprotokoll](docs/validation.md).
+**Meilenstein 1:** Display und Touch am Board bestätigt; Benutzer meldet zehn Minuten stabilen Betrieb am Netzteil. **Meilenstein 2:** 16-Step-Prototyp mit eigenständiger Timing-Engine und Mock-MIDI. Den aktuellen Prüfstand dokumentiert [docs/validation.md](docs/validation.md).
 
-## Enthalten
+## Bedienung
 
-- LVGL-Oberfläche im Querformat 480 × 320: „MIDI Sequencer“, 2 × 8 Steps, Auswahlmarkierung, 120 BPM, Play/Stop.
-- Play/Stop ändert nur die Beschriftung. Keine Sequencer-Engine, Notenausgabe oder Speicherung.
-- ST7796 über Arduino_GFX, FT6336 über SensorLib, Reset über TCA9554.
-- USB-Diagnose, PSRAM-/Flash-Prüfung, sichtbare Meldung bei fehlendem Touch.
+- **Play/Stop:** Start immer bei Step 1; jeder Step ist eine Sechzehntelnote. Gold markiert die Wiedergabe, der türkise Rahmen die Bearbeitungsauswahl.
+- **BPM −/+**: 30–300 BPM, Startwert 120.
+- **Step antippen**, dann **Note −/+** (Halbton) oder **Oct −/+** (Oktave). MIDI-Noten 0–127; C4 = MIDI 60.
+- **Rest/Enable:** Step pausieren oder wieder aktivieren. Die Note bleibt erhalten.
+- **Settings:** Gate 5–100 %, Velocity 1–127 und Helligkeit 10–100 %. Starthelligkeit 40 %.
+- Änderungen am Step werden beim nächsten Abspielen dieses Steps wirksam. Eine gerade klingende Note behält ihr ursprüngliches Note Off.
+- Ein Tempo-Wechsel setzt das nächste Step-Intervall ab dem Änderungszeitpunkt neu an. Start/Stop ist unabhängig von der Step-Auswahl.
+- Ein Demo-Pattern liegt im RAM. **Noch keine Speicherung und kein elektrisches MIDI OUT**. Neustart setzt Pattern, Tempo und Helligkeit zurück.
+
+Die Mock-Ausgabe im USB-Monitor zeigt `MOCK t=… ON/OFF ch=1 note=… vel=…`. Der Zeitstempel kommt aus dem Sequencer-Task; die spätere USB-Ankunft ist keine Timingmessung. Optional lässt sich für Prüfungen `p` (Start) oder `s` (Stop) über den Monitor senden. Reguläre Bedienung erfolgt vollständig über Touch.
+
+## Helligkeit und Wärme
+
+Die Hintergrundbeleuchtung wird über GPIO6 mit 20-kHz-PWM geregelt. 40 % bedeutet PWM-Tastverhältnis, keine gemessene Helligkeits- oder Leistungsreduktion. Die UI schläft zwischen Durchläufen etwa 5 ms, statt mit `yield()` ständig erneut zu laufen. Die Engine bleibt in einem separaten Task aktiv. CPU-Takt und Stromversorgung wurden nicht verändert. Eine Temperaturmessung oder bestätigte Wärmeabnahme liegt noch nicht vor.
 
 ## Build unter VS Code / PlatformIO
 
@@ -56,16 +66,20 @@ Die App wartet nicht auf USB. Alle fünf Sekunden erscheint `UI alive` mit Touch
 
 ## Architektur
 
-`src/main.cpp` verbindet `hardware` und `ui`. `hardware` besitzt I²C, LCD, Touch, den LVGL-Port und die Zeitfortschreibung. `ui` erstellt ausschließlich LVGL-Widgets. Der RGB565-Zeilenpuffer belegt 19.200 Bytes internen RAM; SPI-Flush ist synchron. PSRAM wird für spätere Erweiterungen initialisiert und geprüft.
+- `src/sequencer`: PatternModel und SequencerEngine, reines C++ ohne Arduino/LVGL. 64-Bit-Zeit in Mikrosekunden, absolute Step-Grenzen ohne aufsummierten Rundungsfehler.
+- `src/midi`: abstrakte MidiOutput-Schnittstelle für Note On/Off; derzeit ausschließlich Mock.
+- `src/app`: separater FreeRTOS-Task auf Core 0, Priorität 3, statische Befehls-/Ereignisqueues und Zustandskopie. Keine Heap-Allokation oder USB-Ausgabe im Timingpfad.
+- `src/hardware`: Display, Touch, LVGL-Port und Backlight-PWM.
+- `src/ui`: LVGL-Ansicht auf dem Arduino-Loop-Task. Befehle gehen in eine Queue; Lauflicht liest einen geschützten Snapshot.
 
-Später kommen `SequencerEngine`, `PatternModel`, `MidiOutput` und `Storage` als getrennte Module hinzu. Timing läuft dann unabhängig von LVGL in einer eigenen Aufgabe. Die UI übermittelt Befehle und zeigt Zustandskopien an. Synthesizer-Sound bleibt außerhalb des Pattern-Modells.
+Details und Timinggrenzen: [Meilenstein 2](docs/milestone2.md).
 
 ## Nächste Schritte
 
-1. Erledigt: Abhängigkeiten installiert und Firmware erfolgreich gebaut.
-2. Boardrevision bestätigen, flashen und die Hardware-Abnahme durchführen.
-3. Erst danach Meilenstein 2: testbares Pattern-Modell, Transport/Timing und Mock-MIDI.
-4. Vor Meilenstein 3: UART-Anschluss am konkreten Board bestätigen und DIN-Ausgang elektrisch auslegen und messen.
+1. Neue Oberfläche, Helligkeitsregler und Lauflicht am Board prüfen.
+2. Standalone-Lauf mit Wiedergabe und Wärmevergleich bei reduzierter Helligkeit.
+3. Danach M3: UART-Pins und DIN-Schaltung abschließend prüfen, elektrische Ausgabe implementieren und messen.
+4. Pattern-Speicherung folgt erst in M4.
 
 Weitere Details: [Hardware und Quellen](docs/hardware.md), [Entscheidungen](docs/decisions.md), [Prüfprotokoll](docs/validation.md), [Projektkonventionen](AGENTS.md).
 

@@ -14,3 +14,5 @@ jobs:
       - run: pio check -e waveshare_s3 --fail-on-defect high
       - run: g++ -std=c++11 -Wall -Wextra -Werror -Isrc tests/touch_transform.cpp -o /tmp/touch-test
       - run: /tmp/touch-test
+      - run: g++ -std=c++11 -Wall -Wextra -Werror -Isrc tests/sequencer_engine.cpp src/sequencer/SequencerEngine.cpp -o /tmp/sequencer-test
+      - run: /tmp/sequencer-test

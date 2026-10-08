@@ -18,6 +18,7 @@ TCA9554 expander(board::kExpanderAddress);
 TouchDrvFT6X36 touch;
 bool hasTouch = false;
 bool ready = false;
+uint8_t lightPercent = board::kDefaultBrightness;
 uint32_t lastTick = 0;
 // Synchronous SPI flush: one small internal-RAM buffer is sufficient.
 lv_color_t pixels[board::kWidth * 20];
@@ -90,11 +91,21 @@ const char* begin() {
     if (!lv_indev_drv_register(&inputDriver)) return "LVGL input allocation failed";
     lastTick = millis();
     ready = true;
-    digitalWrite(board::kBacklight, HIGH);
+    if (!ledcSetup(board::kBacklightPwmChannel, board::kBacklightPwmHz, 8)) {
+        return "Backlight PWM init failed";
+    }
+    ledcAttachPin(board::kBacklight, board::kBacklightPwmChannel);
+    setBrightness(board::kDefaultBrightness);
     return nullptr;
 }
 
 bool touchAvailable() { return hasTouch; }
+
+void setBrightness(uint8_t percent) {
+    lightPercent = percent < 10 ? 10 : (percent > 100 ? 100 : percent);
+    ledcWrite(board::kBacklightPwmChannel, (lightPercent * 255U + 50U) / 100U);
+}
+uint8_t brightness() { return lightPercent; }
 
 void service() {
     if (!ready) return;
