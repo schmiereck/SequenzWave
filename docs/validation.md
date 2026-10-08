@@ -1,5 +1,9 @@
 # Prüfprotokoll – Meilensteine 1 und 2
 
+## Lautstärkekorrektur nach Hörtest
+
+Der Benutzer hörte den ersten Metronom-Test nur sehr leise und bei Noten lediglich Rauschen. Wahrscheinliche Ursache: `es8311_voice_volume_set(..., 35)` schrieb DAC-Register 0x32 auf 0x58; laut [ES8311-Datenblatt](https://files.waveshare.com/wiki/common/ES8311.user.Guide.pdf) liegt der Unity-Pegel bei 0xBF und jeder Registerschritt oberhalb 0x01 entspricht 0,5 dB. 0x58 liegt somit etwa 51,5 dB unter 0 dB. Zusätzlich war die PCM-Spitze auf 2.800 von 32.767 begrenzt. Die Korrektur setzt den Codec auf 60 (Register 0x98, etwa −19,5 dB), die PCM-Sinusspitze auf 9.000 und ergänzt bei Sequenzernoten zweite und dritte Harmonische für den kleinen Lautsprecher. `platformio run -e waveshare_s3`: **SUCCESS**, RAM 116.000 Bytes, App-Flash 571.661 Bytes. `platformio check -e waveshare_s3`: **PASSED**, 0 HIGH, dieselben 11 MEDIUM-Warnungen aus Bibliotheken. Host-Touch-Test: **PASS**. Upload auf COM3: **SUCCESS**, Hash bestätigt. Anschließende 11-Sekunden-Seriellesung: zweimal `touch=ready`, `audio=ready`, `audio_drop=0`, `midi_drop=0`, stabiler `heap=261448`. Dieser Stand benötigt einen erneuten Hörtest; Pegel, Rauschen und Klang sind noch nicht bestätigt.
+
 ## 2026-10-08: Lautsprecher-Prototyp
 
 Der Benutzer hat die Kamera ausgebaut; GPIO17/18 bleiben ausschließlich für die noch nicht verdrahtete Analog-Sync-Schaltung reserviert. Der vorhandene Lautsprecher wird über ES8311, I²S GPIO12/13/15/16 und den NS4150B-Verstärker an TCA9554 P7 angesteuert. Es gibt drei gespeicherte UI-Modi: Aus, Metronom auf jedem Viertel (Step 1 akzentuiert), und lokale Sinustöne passend zu den Sequencer-Noten. Audio hat eine eigene statische Queue und Task; der MIDI-Timingpfad ruft nur einen nichtblockierenden Queue-Post auf. Im Modus Aus ist der Verstärker abgeschaltet und I²S hält an. Der ES8311-Treiber stammt aus dem offiziellen Waveshare-Beispiel; Quellenhinweis in `lib/ES8311/README.md`.

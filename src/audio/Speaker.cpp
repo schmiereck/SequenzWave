@@ -13,6 +13,9 @@
 namespace {
 constexpr uint32_t kSampleRate = 48000;
 constexpr size_t kFrames = 256;
+// ES8311 DAC register 0x32 is in 0.5-dB steps; 0xBF is 0 dB.
+// The vendor's percentage helper maps 60 to 0x98 (-19.5 dB).
+constexpr int kCodecVolume = 60;
 enum class Kind : uint8_t { Mode, On, Off, Beat };
 struct Message { Kind kind; uint8_t value; uint8_t velocity; };
 StaticQueue_t queueControl;
@@ -85,7 +88,11 @@ void run(void*) {
         for (size_t i = 0; i < kFrames; ++i) {
             int32_t sample = 0;
             if (currentMode == audio::Mode::Notes && noteVelocity) {
-                sample = sineTable[phase >> 24] * noteVelocity / 127;
+                // Harmonics help the tiny speaker reproduce low notes.
+                const int32_t wave = sineTable[phase >> 24] +
+                    sineTable[(phase * 2U) >> 24] / 2 +
+                    sineTable[(phase * 3U) >> 24] / 4;
+                sample = wave * noteVelocity / 127;
                 phase += phaseStep;
             } else if (currentMode == audio::Mode::Metronome && clickFrames) {
                 sample = sineTable[phase >> 24] * static_cast<int32_t>(clickFrames) /
@@ -105,7 +112,7 @@ void run(void*) {
 namespace audio {
 bool begin(Mode initial) {
     for (unsigned i = 0; i < 256; ++i) {
-        sineTable[i] = static_cast<int16_t>(2800 * std::sin(2.0 * 3.141592653589793 * i / 256));
+        sineTable[i] = static_cast<int16_t>(9000 * std::sin(2.0 * 3.141592653589793 * i / 256));
     }
     i2s_config_t config{};
     config.mode = static_cast<i2s_mode_t>(I2S_MODE_MASTER | I2S_MODE_TX);
@@ -131,7 +138,7 @@ bool begin(Mode initial) {
         false, false, true, kSampleRate * 256, kSampleRate
     };
     if (es8311_init(codec, &clock, ES8311_RESOLUTION_16, ES8311_RESOLUTION_16) != ESP_OK ||
-        es8311_voice_volume_set(codec, 35, nullptr) != ESP_OK ||
+        es8311_voice_volume_set(codec, kCodecVolume, nullptr) != ESP_OK ||
         es8311_microphone_config(codec, false) != ESP_OK) return false;
     if (!hardware::setSpeakerAmplifier(initial != Mode::Off)) return false;
     currentMode = initial;
