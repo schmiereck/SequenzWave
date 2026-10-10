@@ -83,7 +83,7 @@ Details und Timinggrenzen: [Meilenstein 2](docs/milestone2.md).
 
 1. Beim bestätigten Rev2.0-Board die Pin-1-Orientierung von J8 prüfen und die MIDI-OUT-Schaltung aus [Meilenstein 3](docs/milestone3.md) aufbauen.
 2. DIN-Ausgang elektrisch prüfen und mit dem Volca FM Note On/Off, Kanal und Gate testen; Timing messen.
-3. Ungenutzte OV5640 abstecken, Sync-Schaltungen aus [clock_sync.md](docs/clock_sync.md) aufbauen und elektrisch prüfen. Danach GPIO-ISR, Pulsweitergabe, Transport und UI mit dem ClockSync-Modul verbinden.
+3. Die bereits ausgebaute OV5640 getrennt lassen, SYNC-IN-/OUT-Schaltungen aus [Meilenstein 3](docs/milestone3.md) aufbauen und elektrisch prüfen. Danach GPIO-ISR, Pulsweitergabe, Transport und UI mit dem [ClockSync-Modul](docs/clock_sync.md) verbinden.
 4. M4 erweitert die einfache NVS-Speicherung um mehrere Patterns, Kopieren/Löschen und Fehlerbehandlung.
 
 Weitere Details: [Hardware und Quellen](docs/hardware.md), [Entscheidungen](docs/decisions.md), [Prüfprotokoll](docs/validation.md), [Projektkonventionen](AGENTS.md).

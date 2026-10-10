@@ -57,4 +57,4 @@ Beide PDFs wurden über Textextraktion untersucht. Die Netzanordnung lässt sich
 
 Die DIN-Schaltung und das Pin-Konfliktaudit sind in [Meilenstein 3](milestone3.md) dokumentiert. Keine DIN-Buchse direkt mit ESP-GPIOs verbinden; der vorgesehene Ausgang enthält einen 3,3-V-Puffer und die Widerstände der MIDI-Spezifikation.
 
-Die zusätzliche Analog-Sync-Planung samt Rev2.0-Headerpins, Schutzeingang, 5-V-Ausgangsstufe und Camera/SD/Audio-Konfliktaudit steht in [clock_sync.md](clock_sync.md). Die Sync-GPIOs sind noch nicht initialisiert.
+Die gemeinsame Verdrahtung für DIN-MIDI und Analog-Sync samt Rev2.0-Headerpins, Schutzeingang, 5-V-Ausgangsstufe und Bauteilliste steht in [Meilenstein 3](milestone3.md). Taktmodell und Transportvertrag stehen in [clock_sync.md](clock_sync.md). Die Sync-GPIOs sind noch nicht initialisiert.

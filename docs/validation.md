@@ -1,5 +1,9 @@
 # Prüfprotokoll – Meilensteine 1 und 2
 
+## 2026-10-10: Gemeinsamer Verdrahtungsplan für MIDI und Sync
+
+Auf Wunsch des Benutzers enthält [milestone3.md](milestone3.md) nun zusätzlich zu DIN-MIDI OUT die beiden Analog-Sync-Schaltungen, Rev2.0-J8-Pins, 5-V-/3,3-V-Versorgung, IC-Pinbelegung für SOT-23/DBV, eine gemeinsame Stückliste und getrennte elektrische Prüfschritte. Abgleich mit dem offiziellen [Rev2.0-Schaltplan](https://files.waveshare.com/wiki/ESP32-S3-Touch-LCD-3.5/ESP32-S3-Touch-LCD-3.5_Rev2.0.pdf), dem [Volca-FM-Handbuch](https://cdn.korg.com/us/support/download/files/f160e38a8112b463f6546dad35091bd5.pdf) und den verlinkten TI-Datenblättern. `git diff --check`: **PASS**; lokale Markdown-Dateilinks geprüft. Die Kamera ist ausgebaut; GPIO17/18 sind weiterhin nur reserviert. **Keine Firmware geändert, keine neuen Build- oder Boardtests durchgeführt.** Das Löten, die Pegelmessung und die Sync-Firmware stehen noch aus.
+
 ## Lautstärkeregler und V4-Speicherformat
 
 Nach Hörtest bestätigt der Benutzer: Das Metronom ist gut hörbar, die Noten sind deutlich, aber leise. Die Settings-Seite enthält deshalb eine fünfte Zeile `Volume` (0–100 %) unter `Brightness`. Startwert 80 % reproduziert den bisherigen Codec-Pegel; 100 % entspricht etwa 0 dB am ES8311. Die lokale Noten-PCM ist zusätzlich gegenüber dem Metronom verdoppelt. MIDI-Velocity und Pattern-Daten werden dadurch nicht geändert. Dieser neue Pegel und die Touch-Zeile benötigen noch den Hör-/Bedientest des Benutzers.

@@ -13,9 +13,9 @@ Der Benutzer hat **ESP32-S3-Touch-LCD-3.5-C Rev2.0** bestätigt. Am Speaker-Ansc
 | 3,3 V | VCC3V3 | 31/32 | Logikversorgung |
 | GND | GND | 29/30 | gemeinsamer Bezug für Analog-Sync |
 
-**Voraussetzung:** Das ungenutzte OV5640-Flachbandkabel ist abgesteckt, bevor GPIO17/18 als Sync-Pins aktiviert oder verdrahtet werden. Ein nicht initialisierter Kameratreiber garantiert keine elektrisch hochohmigen Kameraausgänge. Die Firmware aktiviert diese beiden Pins derzeit **nicht**. Die Kamera darf bei Sync-Betrieb nicht wieder angeschlossen werden.
+**Voraussetzung erfüllt:** Der Benutzer hat die OV5640 ausgebaut. Ein nicht initialisierter Kameratreiber hätte keine elektrisch hochohmigen Kameraausgänge garantiert. Die Firmware aktiviert GPIO17/18 derzeit **nicht**. Die Kamera darf bei Sync-Betrieb nicht wieder angeschlossen werden. Der gemeinsame Verdrahtungsplan mit MIDI und Stückliste steht in [milestone3.md](milestone3.md).
 
-Andere Headerpins sind belegt: GPIO9–11 durch microSD, GPIO12–16 durch den Audio-Codec (Lautsprecher später nutzbar), GPIO43 durch den Boot-UART, GPIO0 als Boot-Strap, GPIO4 durch den Expander-Interrupt. Die übrigen freien Header-I/Os gehören ebenfalls zur Kamera. GPIO17/18 sind nach Abstecken der Kamera die kleinste saubere Änderung ohne Verlust von SD, Audio oder USB. Auf dem Rev2.0-Header liegen ihre Positionen weit genug von MIDI GPIO44 getrennt; Pin-1-Orientierung am realen Board vor Anschluss prüfen.
+Andere Headerpins sind belegt: GPIO9–11 durch microSD, GPIO12–16 durch den Audio-Codec (Lautsprecher aktiv), GPIO43 durch den Boot-UART, GPIO0 als Boot-Strap, GPIO4 durch den Expander-Interrupt. Die übrigen freien Header-I/Os gehören ebenfalls zur Kamera. GPIO17/18 sind nach Abstecken der Kamera die kleinste saubere Änderung ohne Verlust von SD, Audio oder USB. Auf dem Rev2.0-Header liegen ihre Positionen weit genug von MIDI GPIO44 getrennt; Pin-1-Orientierung am realen Board vor Anschluss prüfen.
 
 ## Signal und Schutzschaltung
 
@@ -42,7 +42,7 @@ Für die spätere Integration gilt folgender Vertrag:
 
 ## Nächste Hardwareprüfungen
 
-1. OV5640 abstecken und Flachbandkabel gesichert isolieren; J8 Pin 1/15/17/28 am Rev2.0-Board identifizieren.
+1. Den ausgebauten OV5640-Anschluss frei lassen; J8 Pin 1/15/17/28 am Rev2.0-Board identifizieren.
 2. SYNC-IN-/OUT-Schaltungen stromlos aufbauen und Widerstands-/Kurzschlussprüfung durchführen. GPIO17/18 bleiben bis dahin in der Firmware unangetastet.
 3. Mit Oszilloskop oder Logikanalysator Volca-SYNC-OUT-Pegel, Breite, Polarität und Pulsabstand messen. Pegel nach dem Eingangspuffer sowie 5-V-Ausgang unter Last prüfen.
 4. Erst danach ISR und Ausgangstimer integrieren; 2/4-PPQN, Tempoänderungen, Stop und drei Ausfallstrategien am realen Aufbau prüfen.
